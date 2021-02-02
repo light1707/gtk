@@ -681,6 +681,7 @@ apply_uniform (GskGLUniformState      *state,
     GskRoundedRect rounded_rect[0];
     float fval[0];
     int ival[0];
+    guint uval[0];
   } *data;
 
   data = gsk_gl_uniform_state_get_uniform_data (state, info->offset);
@@ -734,6 +735,10 @@ apply_uniform (GskGLUniformState      *state,
 
     case GSK_GL_UNIFORM_FORMAT_4I:
       glUniform4i (location, data->ival[0], data->ival[1], data->ival[2], data->ival[3]);
+      break;
+
+    case GSK_GL_UNIFORM_FORMAT_1UI:
+      glUniform1ui (location, data->uval[0]);
       break;
 
     case GSK_GL_UNIFORM_FORMAT_MATRIX: {

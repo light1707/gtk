@@ -20,6 +20,7 @@
 
 #include "config.h"
 
+#include <gdk/gdkprofilerprivate.h>
 #include <gdk/gdksurfaceprivate.h>
 #include <gsk/gskdebugprivate.h>
 #include <gsk/gskrendererprivate.h>
@@ -73,6 +74,7 @@ gsk_next_renderer_realize (GskRenderer  *renderer,
                            GdkSurface   *surface,
                            GError      **error)
 {
+  G_GNUC_UNUSED gint64 start_time = GDK_PROFILER_CURRENT_TIME;
   GskNextRenderer *self = (GskNextRenderer *)renderer;
   GdkGLContext *context = NULL;
   GdkGLContext *shared_context;
@@ -115,11 +117,16 @@ gsk_next_renderer_realize (GskRenderer  *renderer,
   self->context = g_steal_pointer (&context);
   self->driver = g_steal_pointer (&driver);
 
+  gsk_gl_command_queue_set_profiler (self->command_queue,
+                                     gsk_renderer_get_profiler (renderer));
+
   ret = TRUE;
 
 failure:
   g_clear_object (&driver);
   g_clear_object (&context);
+
+  gdk_profiler_end_mark (start_time, "GskNextRenderer realize", NULL);
 
   return ret;
 }

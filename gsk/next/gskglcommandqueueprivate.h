@@ -21,10 +21,13 @@
 #ifndef __GSK_GL_COMMAND_QUEUE_PRIVATE_H__
 #define __GSK_GL_COMMAND_QUEUE_PRIVATE_H__
 
-#include "gskgltypesprivate.h"
+#include <gsk/gskprofilerprivate.h>
 
+#include "gskgltypesprivate.h"
 #include "gskglattachmentstateprivate.h"
 #include "gskgluniformstateprivate.h"
+
+#include "../gl/gskglprofilerprivate.h"
 
 G_BEGIN_DECLS
 
@@ -64,6 +67,10 @@ struct _GskGLCommandQueue
    * chances at merging draw commands.
    */
   GskGLUniformState *uniforms;
+
+  /* The profiler instance to deliver timing/etc data */
+  GskProfiler *profiler;
+  GskGLProfiler *gl_profiler;
 
   /* Array of GskGLCommandDraw which allows us to have a static size field
    * in GskGLCommandBatch to coalesce draws. Multiple GskGLCommandDraw may
@@ -106,6 +113,17 @@ struct _GskGLCommandQueue
    */
   int tail_batch_index;
 
+#ifdef G_ENABLE_DEBUG
+  struct {
+    GQuark n_binds;
+    GQuark n_frames;
+    GQuark n_uniforms;
+    GQuark n_fbos;
+    GQuark cpu_time;
+    GQuark gpu_time;
+  } metrics;
+#endif
+
   /* If we're inside a begin/end_frame pair */
   guint in_frame : 1;
 
@@ -115,6 +133,8 @@ struct _GskGLCommandQueue
 
 GskGLCommandQueue *gsk_gl_command_queue_new                  (GdkGLContext             *context,
                                                               GskGLUniformState        *uniforms);
+void               gsk_gl_command_queue_set_profiler         (GskGLCommandQueue        *self,
+                                                              GskProfiler              *profiler);
 GdkGLContext      *gsk_gl_command_queue_get_context          (GskGLCommandQueue        *self);
 void               gsk_gl_command_queue_make_current         (GskGLCommandQueue        *self);
 void               gsk_gl_command_queue_begin_frame          (GskGLCommandQueue        *self);

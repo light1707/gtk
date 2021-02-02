@@ -23,12 +23,14 @@
 
 #include "config.h"
 
-#include <gdk/gdkglcontextprivate.h>
-#include <gdk/gdkmemorytextureprivate.h>
-#include <gsk/gskdebugprivate.h>
-#include <gsk/gskroundedrectprivate.h>
 #include <epoxy/gl.h>
 #include <string.h>
+
+#include <gdk/gdkglcontextprivate.h>
+#include <gdk/gdkmemorytextureprivate.h>
+#include <gdk/gdkprofilerprivate.h>
+#include <gsk/gskdebugprivate.h>
+#include <gsk/gskroundedrectprivate.h>
 
 #include "gskglattachmentstateprivate.h"
 #include "gskglbufferprivate.h"
@@ -385,6 +387,8 @@ gsk_gl_command_queue_dispose (GObject *object)
 
   g_assert (GSK_IS_GL_COMMAND_QUEUE (self));
 
+  g_clear_object (&self->profiler);
+  g_clear_object (&self->gl_profiler);
   g_clear_object (&self->context);
   g_clear_pointer (&self->batches, g_array_unref);
   g_clear_pointer (&self->attachments, gsk_gl_attachment_state_unref);
@@ -929,12 +933,22 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
   guint16 width = 0;
   guint16 height = 0;
   guint count = 0;
+#ifdef G_ENABLE_DEBUG
+  guint n_binds = 0;
+  guint n_fbos = 0;
+  guint n_uniforms = 0;
+#endif
 
   g_return_if_fail (GSK_IS_GL_COMMAND_QUEUE (self));
   g_return_if_fail (self->in_draw == FALSE);
 
   if (self->batches->len == 0)
     return;
+
+#ifdef G_ENABLE_DEBUG
+  gsk_gl_profiler_begin_gpu_region (self->gl_profiler);
+  gsk_profiler_timer_begin (self->profiler, self->metrics.cpu_time);
+#endif
 
   gsk_gl_command_queue_make_current (self);
 
@@ -998,6 +1012,9 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
                              scale_factor,
                              &scissor_rect,
                              scissor != NULL);
+#ifdef G_ENABLE_DEBUG
+              n_fbos++;
+#endif
             }
 
           apply_viewport (&width,
@@ -1032,6 +1049,9 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
                              scale_factor,
                              &scissor_rect,
                              scissor != NULL);
+#ifdef G_ENABLE_DEBUG
+              n_fbos++;
+#endif
             }
 
           apply_viewport (&width,
@@ -1062,6 +1082,11 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
 
                   apply_uniform (self->uniforms, &u->info, u->location);
                 }
+
+#ifdef G_ENABLE_DEBUG
+              n_uniforms += batch->draw.uniform_count;
+              n_binds += batch->draw.bind_count;
+#endif
             }
 
           glDrawArrays (GL_TRIANGLES, batch->draw.vbo_offset, batch->draw.vbo_count);
@@ -1094,6 +1119,24 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
     }
 
   glDeleteVertexArrays (1, &vao_id);
+
+#ifdef G_ENABLE_DEBUG
+  {
+    gint64 start_time G_GNUC_UNUSED = gsk_profiler_timer_get_start (self->profiler, self->metrics.cpu_time);
+    gint64 cpu_time = gsk_profiler_timer_end (self->profiler, self->metrics.cpu_time);
+    gint64 gpu_time = gsk_gl_profiler_end_gpu_region (self->gl_profiler);
+
+    gsk_profiler_timer_set (self->profiler, self->metrics.gpu_time, gpu_time);
+    gsk_profiler_timer_set (self->profiler, self->metrics.cpu_time, cpu_time);
+    gsk_profiler_counter_inc (self->profiler, self->metrics.n_frames);
+    gsk_profiler_counter_set (self->profiler, self->metrics.n_binds, n_binds);
+    gsk_profiler_counter_set (self->profiler, self->metrics.n_uniforms, n_uniforms);
+    gsk_profiler_counter_set (self->profiler, self->metrics.n_fbos, n_fbos);
+    gsk_profiler_push_samples (self->profiler);
+
+    gdk_profiler_add_mark (start_time * 1000, cpu_time * 1000, "GL render", "");
+  }
+#endif
 }
 
 void
@@ -1328,4 +1371,26 @@ gsk_gl_command_queue_upload_texture (GskGLCommandQueue *self,
   g_clear_pointer (&surface, cairo_surface_destroy);
 
   return texture_id;
+}
+
+void
+gsk_gl_command_queue_set_profiler (GskGLCommandQueue *self,
+                                   GskProfiler       *profiler)
+{
+#ifdef G_ENABLE_DEBUG
+  g_return_if_fail (GSK_IS_GL_COMMAND_QUEUE (self));
+  g_return_if_fail (GSK_IS_PROFILER (profiler));
+
+  if (g_set_object (&self->profiler, profiler))
+    {
+      self->gl_profiler = gsk_gl_profiler_new (self->context);
+
+      self->metrics.n_fbos = gsk_profiler_add_counter (profiler, "fbos", "Framebuffers Changed", FALSE);
+      self->metrics.n_frames = gsk_profiler_add_counter (profiler, "frames", "Frames", FALSE);
+      self->metrics.n_uniforms = gsk_profiler_add_counter (profiler, "uniforms", "Uniforms Changed", FALSE);
+      self->metrics.n_binds = gsk_profiler_add_counter (profiler, "attachments", "Attachments Changed", FALSE);
+      self->metrics.cpu_time = gsk_profiler_add_timer (profiler, "cpu-time", "CPU Time", FALSE, TRUE);
+      self->metrics.gpu_time = gsk_profiler_add_timer (profiler, "gpu-time", "GPU Time", FALSE, TRUE);
+    }
+#endif
 }

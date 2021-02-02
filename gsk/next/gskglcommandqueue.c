@@ -307,6 +307,10 @@ gsk_gl_command_queue_print_batch (GskGLCommandQueue       *self,
           g_printerr ("\n");
         }
     }
+  else if (batch->any.kind == GSK_GL_COMMAND_KIND_CLEAR)
+    {
+      g_printerr ("         Bits: 0x%x\n", batch->clear.bits);
+    }
 
   g_printerr ("}\n");
 }

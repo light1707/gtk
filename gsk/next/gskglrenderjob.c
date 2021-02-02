@@ -24,6 +24,7 @@
 #include "config.h"
 
 #include <gdk/gdkglcontextprivate.h>
+#include <gdk/gdkprofilerprivate.h>
 #include <gdk/gdkrgbaprivate.h>
 #include <gsk/gskrendernodeprivate.h>
 #include <gsk/gskglshaderprivate.h>
@@ -3701,6 +3702,7 @@ void
 gsk_gl_render_job_render (GskGLRenderJob *job,
                           GskRenderNode  *root)
 {
+  G_GNUC_UNUSED gint64 start_time;
   guint scale_factor;
   guint surface_height;
 
@@ -3716,12 +3718,14 @@ gsk_gl_render_job_render (GskGLRenderJob *job,
   /* Build the command queue using the shared GL context for all renderers
    * on the same display.
    */
+  start_time = GDK_PROFILER_CURRENT_TIME;
   gdk_gl_context_push_debug_group (job->command_queue->context, "Building command queue");
   if (job->framebuffer != 0)
     gsk_gl_command_queue_bind_framebuffer (job->command_queue, job->framebuffer);
   gsk_gl_command_queue_clear (job->command_queue, 0, &job->viewport);
   gsk_gl_render_job_visit_node (job, root);
   gdk_gl_context_pop_debug_group (job->command_queue->context);
+  gdk_profiler_add_mark (start_time, GDK_PROFILER_CURRENT_TIME-start_time, "Build GL command queue", "");
 
 #if 0
   /* At this point the atlases have uploaded content while we processed
@@ -3734,10 +3738,12 @@ gsk_gl_render_job_render (GskGLRenderJob *job,
    * that was provided to us when creating the render job as framebuffer 0
    * is bound to that context.
    */
+  start_time = GDK_PROFILER_CURRENT_TIME;
   gsk_gl_command_queue_make_current (job->command_queue);
   gdk_gl_context_push_debug_group (job->command_queue->context, "Executing command queue");
   gsk_gl_command_queue_execute (job->command_queue, surface_height, scale_factor, job->region);
   gdk_gl_context_pop_debug_group (job->command_queue->context);
+  gdk_profiler_add_mark (start_time, GDK_PROFILER_CURRENT_TIME-start_time, "Execute GL command queue", "");
 }
 
 void

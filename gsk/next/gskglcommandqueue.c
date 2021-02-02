@@ -157,8 +157,8 @@ typedef union _GskGLCommandBatch
   } debug_group;
   struct {
     GskGLCommandBatchAny  any;
-    guint bits;
-    guint framebuffer;
+    guint                 bits;
+    guint                 framebuffer;
   } clear;
 } GskGLCommandBatch;
 

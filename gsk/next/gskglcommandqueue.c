@@ -225,7 +225,7 @@ print_uniform (GskGLUniformFormat format,
       graphene_matrix_to_float (&data->matrix[0], mat);
       g_printerr ("matrix<");
       for (guint i = 0; i < G_N_ELEMENTS (mat)-1; i++)
-        g_printerr ("%f", mat[i]);
+        g_printerr ("%f,", mat[i]);
       g_printerr ("%f>", mat[G_N_ELEMENTS (mat)-1]);
       break;
     }

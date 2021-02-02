@@ -113,16 +113,15 @@ struct _GskGLCommandQueue
    */
   int tail_batch_index;
 
-#ifdef G_ENABLE_DEBUG
+  /* Various GSK and GDK metrics */
   struct {
-    GQuark n_binds;
     GQuark n_frames;
-    GQuark n_uniforms;
-    GQuark n_fbos;
     GQuark cpu_time;
     GQuark gpu_time;
+    guint n_binds;
+    guint n_fbos;
+    guint n_uniforms;
   } metrics;
-#endif
 
   /* If we're inside a begin/end_frame pair */
   guint in_frame : 1;

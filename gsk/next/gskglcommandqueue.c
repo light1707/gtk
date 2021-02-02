@@ -933,11 +933,9 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
   guint16 width = 0;
   guint16 height = 0;
   guint count = 0;
-#ifdef G_ENABLE_DEBUG
   guint n_binds = 0;
   guint n_fbos = 0;
   guint n_uniforms = 0;
-#endif
 
   g_return_if_fail (GSK_IS_GL_COMMAND_QUEUE (self));
   g_return_if_fail (self->in_draw == FALSE);
@@ -1012,9 +1010,7 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
                              scale_factor,
                              &scissor_rect,
                              scissor != NULL);
-#ifdef G_ENABLE_DEBUG
               n_fbos++;
-#endif
             }
 
           apply_viewport (&width,
@@ -1049,9 +1045,7 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
                              scale_factor,
                              &scissor_rect,
                              scissor != NULL);
-#ifdef G_ENABLE_DEBUG
               n_fbos++;
-#endif
             }
 
           apply_viewport (&width,
@@ -1083,10 +1077,8 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
                   apply_uniform (self->uniforms, &u->info, u->location);
                 }
 
-#ifdef G_ENABLE_DEBUG
               n_uniforms += batch->draw.uniform_count;
               n_binds += batch->draw.bind_count;
-#endif
             }
 
           glDrawArrays (GL_TRIANGLES, batch->draw.vbo_offset, batch->draw.vbo_count);
@@ -1120,6 +1112,10 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
 
   glDeleteVertexArrays (1, &vao_id);
 
+  gdk_profiler_set_int_counter (self->metrics.n_binds, n_binds);
+  gdk_profiler_set_int_counter (self->metrics.n_uniforms, n_uniforms);
+  gdk_profiler_set_int_counter (self->metrics.n_fbos, n_fbos);
+
 #ifdef G_ENABLE_DEBUG
   {
     gint64 start_time G_GNUC_UNUSED = gsk_profiler_timer_get_start (self->profiler, self->metrics.cpu_time);
@@ -1129,12 +1125,8 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
     gsk_profiler_timer_set (self->profiler, self->metrics.gpu_time, gpu_time);
     gsk_profiler_timer_set (self->profiler, self->metrics.cpu_time, cpu_time);
     gsk_profiler_counter_inc (self->profiler, self->metrics.n_frames);
-    gsk_profiler_counter_set (self->profiler, self->metrics.n_binds, n_binds);
-    gsk_profiler_counter_set (self->profiler, self->metrics.n_uniforms, n_uniforms);
-    gsk_profiler_counter_set (self->profiler, self->metrics.n_fbos, n_fbos);
-    gsk_profiler_push_samples (self->profiler);
 
-    gdk_profiler_add_mark (start_time * 1000, cpu_time * 1000, "GL render", "");
+    gsk_profiler_push_samples (self->profiler);
   }
 #endif
 }
@@ -1372,11 +1364,9 @@ gsk_gl_command_queue_upload_texture (GskGLCommandQueue *self,
   g_clear_pointer (&surface, cairo_surface_destroy);
 
   if (gdk_profiler_is_running ())
-    {
-      char message[64];
-      g_snprintf (message, sizeof message, "Size %dx%d", width, height);
-      gdk_profiler_add_mark (start_time, GDK_PROFILER_CURRENT_TIME-start_time, "Upload Texture", message);
-    }
+    gdk_profiler_add_markf (start_time, GDK_PROFILER_CURRENT_TIME-start_time,
+                            "Upload Texture",
+                            "Size %dx%d", width, height);
 
   return texture_id;
 }
@@ -1393,12 +1383,13 @@ gsk_gl_command_queue_set_profiler (GskGLCommandQueue *self,
     {
       self->gl_profiler = gsk_gl_profiler_new (self->context);
 
-      self->metrics.n_fbos = gsk_profiler_add_counter (profiler, "fbos", "Framebuffers Changed", FALSE);
       self->metrics.n_frames = gsk_profiler_add_counter (profiler, "frames", "Frames", FALSE);
-      self->metrics.n_uniforms = gsk_profiler_add_counter (profiler, "uniforms", "Uniforms Changed", FALSE);
-      self->metrics.n_binds = gsk_profiler_add_counter (profiler, "attachments", "Attachments Changed", FALSE);
       self->metrics.cpu_time = gsk_profiler_add_timer (profiler, "cpu-time", "CPU Time", FALSE, TRUE);
       self->metrics.gpu_time = gsk_profiler_add_timer (profiler, "gpu-time", "GPU Time", FALSE, TRUE);
+
+      self->metrics.n_binds = gdk_profiler_define_int_counter ("attachments", "Number of texture attachments");
+      self->metrics.n_fbos = gdk_profiler_define_int_counter ("fbos", "Number of framebuffers attached");
+      self->metrics.n_uniforms = gdk_profiler_define_int_counter ("uniforms", "Number of uniforms changed");
     }
 #endif
 }

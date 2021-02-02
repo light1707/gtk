@@ -290,6 +290,7 @@ gsk_gl_command_queue_print_batch (GskGLCommandQueue       *self,
   if (batch->any.kind == GSK_GL_COMMAND_KIND_DRAW)
     {
       g_printerr ("      Program: %d\n", batch->any.program);
+      g_printerr ("     Vertices: %d\n", batch->draw.vbo_count);
 
       for (guint i = 0; i < batch->draw.bind_count; i++)
         {

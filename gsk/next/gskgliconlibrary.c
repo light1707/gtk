@@ -22,6 +22,7 @@
 
 #include <gdk/gdkglcontextprivate.h>
 #include <gdk/gdkmemorytextureprivate.h>
+#include <gdk/gdkprofilerprivate.h>
 #include <gdk/gdktextureprivate.h>
 
 #include "gskglcommandqueueprivate.h"
@@ -73,6 +74,7 @@ gsk_gl_icon_library_add (GskGLIconLibrary     *self,
                          GdkTexture           *key,
                          const GskGLIconData **out_value)
 {
+  G_GNUC_UNUSED gint64 start_time = GDK_PROFILER_CURRENT_TIME;
   cairo_surface_t *surface;
   GskGLIconData *icon_data;
   GdkGLContext *context;
@@ -204,4 +206,11 @@ gsk_gl_icon_library_add (GskGLIconLibrary     *self,
 
   cairo_surface_destroy (surface);
   g_free (free_data);
+
+  if (gdk_profiler_is_running ())
+    {
+      char message[64];
+      g_snprintf (message, sizeof message, "Size %dx%d", width, height);
+      gdk_profiler_add_mark (start_time, GDK_PROFILER_CURRENT_TIME-start_time, "Upload Icon", message);
+    }
 }

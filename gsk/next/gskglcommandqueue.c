@@ -1308,6 +1308,7 @@ gsk_gl_command_queue_upload_texture (GskGLCommandQueue *self,
                                      int                min_filter,
                                      int                mag_filter)
 {
+  G_GNUC_UNUSED gint64 start_time = GDK_PROFILER_CURRENT_TIME;
   cairo_surface_t *surface = NULL;
   GdkMemoryFormat data_format;
   const guchar *data;
@@ -1369,6 +1370,13 @@ gsk_gl_command_queue_upload_texture (GskGLCommandQueue *self,
                    self->attachments->textures[0].id);
 
   g_clear_pointer (&surface, cairo_surface_destroy);
+
+  if (gdk_profiler_is_running ())
+    {
+      char message[64];
+      g_snprintf (message, sizeof message, "Size %dx%d", width, height);
+      gdk_profiler_add_mark (start_time, GDK_PROFILER_CURRENT_TIME-start_time, "Upload Texture", message);
+    }
 
   return texture_id;
 }

@@ -22,6 +22,7 @@
 
 #include <gdk/gdkglcontextprivate.h>
 #include <gdk/gdkmemorytextureprivate.h>
+#include <gdk/gdkprofilerprivate.h>
 
 #include "gskglcommandqueueprivate.h"
 #include "gskgldriverprivate.h"
@@ -185,6 +186,7 @@ gsk_gl_glyph_library_upload_glyph (GskGLGlyphLibrary     *self,
                                    int                    height,
                                    double                 device_scale)
 {
+  G_GNUC_UNUSED gint64 start_time = GDK_PROFILER_CURRENT_TIME;
   cairo_scaled_font_t *scaled_font;
   GskGLTextureAtlas *atlas;
   cairo_surface_t *surface;
@@ -266,6 +268,13 @@ gsk_gl_glyph_library_upload_glyph (GskGLGlyphLibrary     *self,
   g_free (free_data);
 
   gdk_gl_context_pop_debug_group (gdk_gl_context_get_current ());
+
+  if (gdk_profiler_is_running ())
+    {
+      char message[64];
+      g_snprintf (message, sizeof message, "Size %dx%d", width, height);
+      gdk_profiler_add_mark (start_time, GDK_PROFILER_CURRENT_TIME-start_time, "Upload Glyph", message);
+    }
 }
 
 gboolean

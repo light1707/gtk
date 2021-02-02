@@ -202,6 +202,20 @@ gsk_next_driver_create_atlas (GskNextDriver *self)
 }
 
 static void
+remove_program (gpointer data)
+{
+  GskGLProgram *program = data;
+
+  g_assert (!program || GSK_IS_GL_PROGRAM (program));
+
+  if (program != NULL)
+    {
+      gsk_gl_program_delete (program);
+      g_object_unref (program);
+    }
+}
+
+static void
 gsk_next_driver_shader_weak_cb (gpointer  data,
                                 GObject  *where_object_was)
 {
@@ -209,7 +223,7 @@ gsk_next_driver_shader_weak_cb (gpointer  data,
 
   g_assert (GSK_IS_NEXT_DRIVER (self));
 
-  if (self->shader_cache)
+  if (self->shader_cache != NULL)
     g_hash_table_remove (self->shader_cache, where_object_was);
 }
 
@@ -308,10 +322,7 @@ gsk_next_driver_init (GskNextDriver *self)
                                                    texture_key_equal,
                                                    g_free,
                                                    NULL);
-  self->shader_cache = g_hash_table_new_full (NULL,
-                                              NULL,
-                                              g_object_unref,
-                                              g_object_unref);
+  self->shader_cache = g_hash_table_new_full (NULL, NULL, NULL, remove_program);
   gsk_gl_texture_pool_init (&self->texture_pool);
   self->render_targets = g_ptr_array_new ();
   self->atlases = g_ptr_array_new_with_free_func ((GDestroyNotify)gsk_gl_texture_atlas_free);

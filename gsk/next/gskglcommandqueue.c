@@ -182,40 +182,40 @@ print_uniform (GskGLUniformFormat format,
   switch (format)
     {
     case GSK_GL_UNIFORM_FORMAT_1F:
-      g_print ("1f<%f>", data->fval[0]);
+      g_printerr ("1f<%f>", data->fval[0]);
       break;
 
     case GSK_GL_UNIFORM_FORMAT_2F:
-      g_print ("2f<%f,%f>", data->fval[0], data->fval[1]);
+      g_printerr ("2f<%f,%f>", data->fval[0], data->fval[1]);
       break;
 
     case GSK_GL_UNIFORM_FORMAT_3F:
-      g_print ("3f<%f,%f,%f>", data->fval[0], data->fval[1], data->fval[2]);
+      g_printerr ("3f<%f,%f,%f>", data->fval[0], data->fval[1], data->fval[2]);
       break;
 
     case GSK_GL_UNIFORM_FORMAT_4F:
-      g_print ("4f<%f,%f,%f,%f>", data->fval[0], data->fval[1], data->fval[2], data->fval[3]);
+      g_printerr ("4f<%f,%f,%f,%f>", data->fval[0], data->fval[1], data->fval[2], data->fval[3]);
       break;
 
     case GSK_GL_UNIFORM_FORMAT_1I:
     case GSK_GL_UNIFORM_FORMAT_TEXTURE:
-      g_print ("1i<%d>", data->ival[0]);
+      g_printerr ("1i<%d>", data->ival[0]);
       break;
 
     case GSK_GL_UNIFORM_FORMAT_1UI:
-      g_print ("1ui<%u>", data->uval[0]);
+      g_printerr ("1ui<%u>", data->uval[0]);
       break;
 
     case GSK_GL_UNIFORM_FORMAT_COLOR: {
       char *str = gdk_rgba_to_string (valueptr);
-      g_print ("%s", str);
+      g_printerr ("%s", str);
       g_free (str);
       break;
     }
 
     case GSK_GL_UNIFORM_FORMAT_ROUNDED_RECT: {
       char *str = gsk_rounded_rect_to_string (valueptr);
-      g_print ("%s", str);
+      g_printerr ("%s", str);
       g_free (str);
       break;
     }
@@ -223,10 +223,10 @@ print_uniform (GskGLUniformFormat format,
     case GSK_GL_UNIFORM_FORMAT_MATRIX: {
       float mat[16];
       graphene_matrix_to_float (&data->matrix[0], mat);
-      g_print ("matrix<");
+      g_printerr ("matrix<");
       for (guint i = 0; i < G_N_ELEMENTS (mat)-1; i++)
-        g_print ("%f", mat[i]);
-      g_print ("%f>", mat[G_N_ELEMENTS (mat)-1]);
+        g_printerr ("%f", mat[i]);
+      g_printerr ("%f>", mat[G_N_ELEMENTS (mat)-1]);
       break;
     }
 
@@ -236,27 +236,27 @@ print_uniform (GskGLUniformFormat format,
     case GSK_GL_UNIFORM_FORMAT_4FV:
       /* non-V variants are -4 from V variants */
       format -= 4;
-      g_print ("[");
+      g_printerr ("[");
       for (guint i = 0; i < array_count; i++)
         {
           print_uniform (format, 0, valueptr);
           if (i + 1 != array_count)
-            g_print (",");
+            g_printerr (",");
           valueptr = ((guint8*)valueptr + gsk_gl_uniform_format_size (format));
         }
-      g_print ("]");
+      g_printerr ("]");
       break;
 
     case GSK_GL_UNIFORM_FORMAT_2I:
-      g_print ("2i<%d,%d>", data->ival[0], data->ival[1]);
+      g_printerr ("2i<%d,%d>", data->ival[0], data->ival[1]);
       break;
 
     case GSK_GL_UNIFORM_FORMAT_3I:
-      g_print ("3i<%d,%d,%d>", data->ival[0], data->ival[1], data->ival[2]);
+      g_printerr ("3i<%d,%d,%d>", data->ival[0], data->ival[1], data->ival[2]);
       break;
 
     case GSK_GL_UNIFORM_FORMAT_4I:
-      g_print ("3i<%d,%d,%d,%d>", data->ival[0], data->ival[1], data->ival[2], data->ival[3]);
+      g_printerr ("3i<%d,%d,%d,%d>", data->ival[0], data->ival[1], data->ival[2], data->ival[3]);
       break;
 
     case GSK_GL_UNIFORM_FORMAT_LAST:
@@ -300,11 +300,11 @@ gsk_gl_command_queue_print_batch (GskGLCommandQueue       *self,
       for (guint i = 0; i < batch->draw.uniform_count; i++)
         {
           const GskGLCommandUniform *uniform = &g_array_index (self->batch_uniforms, GskGLCommandUniform, batch->draw.uniform_offset + i);
-          g_print ("  Uniform[%02d]: ", uniform->location);
+          g_printerr ("  Uniform[%02d]: ", uniform->location);
           print_uniform (uniform->info.format,
                          uniform->info.array_count,
                          gsk_gl_uniform_state_get_uniform_data (self->uniforms, uniform->info.offset));
-          g_print ("\n");
+          g_printerr ("\n");
         }
     }
 

@@ -922,7 +922,7 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
                               const cairo_region_t *scissor)
 {
   cairo_rectangle_int_t scissor_rect;
-  GLuint framebuffer = 0;
+  int framebuffer = -1;
   GLuint vao_id;
   int next_batch_index;
   guint program = 0;

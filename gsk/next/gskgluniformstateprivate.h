@@ -180,6 +180,7 @@ void               gsk_gl_uniform_state_snapshot         (GskGLUniformState     
                                                           guint                      program_id,
                                                           GskGLUniformStateCallback  callback,
                                                           gpointer                   user_data);
+gsize              gsk_gl_uniform_format_size            (GskGLUniformFormat         format);
 
 static inline gconstpointer
 gsk_gl_uniform_state_get_uniform_data (GskGLUniformState *state,

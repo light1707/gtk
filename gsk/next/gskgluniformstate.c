@@ -879,3 +879,12 @@ gsk_gl_uniform_state_end_frame (GskGLUniformState *state)
   g_clear_pointer (&state->uniform_data, g_byte_array_unref);
   state->uniform_data = buffer;
 }
+
+gsize
+gsk_gl_uniform_format_size (GskGLUniformFormat format)
+{
+  g_assert (format > 0);
+  g_assert (format < GSK_GL_UNIFORM_FORMAT_LAST);
+
+  return uniform_sizes[format];
+}

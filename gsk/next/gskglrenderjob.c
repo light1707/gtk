@@ -723,15 +723,12 @@ gsk_gl_render_job_node_overlaps_clip (GskGLRenderJob *job,
                                       GskRenderNode  *node)
 {
   const GskRoundedRect *clip = gsk_gl_render_job_get_clip (job);
+  graphene_rect_t transformed_bounds;
 
-  if (clip != NULL)
-    {
-      graphene_rect_t transformed_bounds;
-      gsk_gl_render_job_transform_bounds (job, &node->bounds, &transformed_bounds);
-      return rect_intersects (&clip->bounds, &transformed_bounds);
-    }
+  g_assert (clip != NULL);
 
-  return TRUE;
+  gsk_gl_render_job_transform_bounds (job, &node->bounds, &transformed_bounds);
+  return rect_intersects (&clip->bounds, &transformed_bounds);
 }
 
 /* load_vertex_data_with_region */

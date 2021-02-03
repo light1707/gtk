@@ -740,11 +740,9 @@ apply_viewport (guint16 *current_width,
 }
 
 static inline void
-apply_scissor (guint                        framebuffer,
-               guint                        surface_height,
-               guint                        scale_factor,
-               const cairo_rectangle_int_t *scissor,
-               gboolean                     has_scissor)
+apply_scissor (guint                  framebuffer,
+               const graphene_rect_t *scissor,
+               gboolean               has_scissor)
 {
   if (framebuffer != 0 || !has_scissor)
     {
@@ -753,10 +751,10 @@ apply_scissor (guint                        framebuffer,
     }
 
   glEnable (GL_SCISSOR_TEST);
-  glScissor (scissor->x * scale_factor,
-             surface_height - (scissor->height * scale_factor) - (scissor->y * scale_factor),
-             scissor->width * scale_factor,
-             scissor->height * scale_factor);
+  glScissor (scissor->origin.x,
+             scissor->origin.y,
+             scissor->size.width,
+             scissor->size.height);
 }
 
 /**
@@ -775,7 +773,7 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
                               const cairo_region_t *scissor)
 {
   gboolean has_scissor = scissor != NULL;
-  cairo_rectangle_int_t scissor_rect;
+  graphene_rect_t scissor_test;
   int framebuffer = -1;
   GLuint vao_id;
   int next_batch_index;
@@ -829,15 +827,18 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
   /* Setup initial scissor clip */
   if (scissor != NULL)
     {
+      cairo_rectangle_int_t r;
+
       g_assert (cairo_region_num_rectangles (scissor) == 1);
-      cairo_region_get_rectangle (scissor, 0, &scissor_rect);
+      cairo_region_get_rectangle (scissor, 0, &r);
+
+      scissor_test.origin.x = r.x * scale_factor;
+      scissor_test.origin.y = surface_height - (r.height * scale_factor) - (r.y * scale_factor);
+      scissor_test.size.width = r.width * scale_factor;
+      scissor_test.size.height = r.height * scale_factor;
     }
 
-  apply_scissor (framebuffer,
-                 surface_height,
-                 scale_factor,
-                 &scissor_rect,
-                 has_scissor);
+  apply_scissor (framebuffer, &scissor_test, has_scissor);
 
   next_batch_index = 0;
 
@@ -856,11 +857,7 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
             {
               framebuffer = batch->clear.framebuffer;
               glBindFramebuffer (GL_FRAMEBUFFER, framebuffer);
-              apply_scissor (framebuffer,
-                             surface_height,
-                             scale_factor,
-                             &scissor_rect,
-                             has_scissor);
+              apply_scissor (framebuffer, &scissor_test, has_scissor);
               n_fbos++;
             }
 
@@ -895,11 +892,7 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
             {
               framebuffer = batch->draw.framebuffer;
               glBindFramebuffer (GL_FRAMEBUFFER, framebuffer);
-              apply_scissor (framebuffer,
-                             surface_height,
-                             scale_factor,
-                             &scissor_rect,
-                             has_scissor);
+              apply_scissor (framebuffer, &scissor_test, has_scissor);
               n_fbos++;
             }
 

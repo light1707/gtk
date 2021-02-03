@@ -286,7 +286,7 @@ gsk_gl_command_queue_init (GskGLCommandQueue *self)
 {
   self->max_texture_size = -1;
 
-  self->batches = g_array_new (FALSE, TRUE, sizeof (GskGLCommandBatch));
+  self->batches = g_array_new (FALSE, FALSE, sizeof (GskGLCommandBatch));
   self->batch_draws = g_array_new (FALSE, FALSE, sizeof (GskGLCommandDraw));
   self->batch_binds = g_array_new (FALSE, FALSE, sizeof (GskGLCommandBind));
   self->batch_uniforms = g_array_new (FALSE, FALSE, sizeof (GskGLCommandUniform));

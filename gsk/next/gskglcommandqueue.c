@@ -634,9 +634,9 @@ gsk_gl_command_queue_delete_program (GskGLCommandQueue *self,
 }
 
 static void
-apply_uniform (GskGLUniformState      *state,
-               const GskGLUniformInfo *info,
-               guint                   location)
+apply_uniform (const GskGLUniformState *state,
+               const GskGLUniformInfo  *info,
+               guint                    location)
 {
   const union {
     graphene_matrix_t matrix[0];
@@ -732,7 +732,7 @@ apply_viewport (guint16 *current_width,
                 guint16 width,
                 guint16 height)
 {
-  if (*current_width != width || *current_height != height)
+  if G_UNLIKELY (*current_width != width || *current_height != height)
     {
       *current_width = width;
       *current_height = height;
@@ -775,6 +775,7 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
                               guint                 scale_factor,
                               const cairo_region_t *scissor)
 {
+  gboolean has_scissor = scissor != NULL;
   cairo_rectangle_int_t scissor_rect;
   int framebuffer = -1;
   GLuint vao_id;
@@ -837,7 +838,7 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
                  surface_height,
                  scale_factor,
                  &scissor_rect,
-                 scissor != NULL);
+                 has_scissor);
 
   next_batch_index = 0;
 
@@ -860,7 +861,7 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
                              surface_height,
                              scale_factor,
                              &scissor_rect,
-                             scissor != NULL);
+                             has_scissor);
               n_fbos++;
             }
 
@@ -895,7 +896,7 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
                              surface_height,
                              scale_factor,
                              &scissor_rect,
-                             scissor != NULL);
+                             has_scissor);
               n_fbos++;
             }
 

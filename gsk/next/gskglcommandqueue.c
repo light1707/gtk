@@ -785,6 +785,7 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
   guint n_fbos = 0;
   guint n_uniforms = 0;
   guint vbo_id;
+  int active = -1;
 
   g_assert (GSK_IS_GL_COMMAND_QUEUE (self));
   g_assert (self->in_draw == FALSE);
@@ -908,7 +909,12 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
                   guint index = batch->draw.bind_offset + i;
                   GskGLCommandBind *bind = &g_array_index (self->batch_binds, GskGLCommandBind, index);
 
-                  glActiveTexture (GL_TEXTURE0 + bind->texture);
+                  if (active != bind->texture)
+                    {
+                      active = bind->texture;
+                      glActiveTexture (GL_TEXTURE0 + bind->texture);
+                    }
+
                   glBindTexture (GL_TEXTURE_2D, bind->id);
                 }
             }

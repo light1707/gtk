@@ -875,11 +875,15 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
         break;
 
         case GSK_GL_COMMAND_KIND_PUSH_DEBUG_GROUP:
+#ifdef G_ENABLE_DEBUG
           gdk_gl_context_push_debug_group (self->context, batch->debug_group.debug_group);
+#endif
         break;
 
         case GSK_GL_COMMAND_KIND_POP_DEBUG_GROUP:
+#ifdef G_ENABLE_DEBUG
           gdk_gl_context_pop_debug_group (self->context);
+#endif
         break;
 
         case GSK_GL_COMMAND_KIND_DRAW:

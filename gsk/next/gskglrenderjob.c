@@ -223,13 +223,19 @@ init_full_texture_region (GskGLRenderOffscreen *offscreen)
   offscreen->area.y2 = 1;
 }
 
+static inline int
+_isnan_f (float x)
+{
+  return x != x;
+}
+
 static inline gboolean G_GNUC_PURE
 node_is_invisible (const GskRenderNode *node)
 {
   return node->bounds.size.width == 0.0f ||
          node->bounds.size.height == 0.0f ||
-         isnan (node->bounds.size.width) ||
-         isnan (node->bounds.size.height);
+         _isnan_f (node->bounds.size.width) ||
+         _isnan_f (node->bounds.size.height);
 }
 
 static inline void

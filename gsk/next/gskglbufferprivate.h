@@ -26,42 +26,48 @@
 
 G_BEGIN_DECLS
 
-#define GSK_GL_BUFFER_N_BUFFERS 2
-
-typedef struct _GskGLBufferShadow
-{
-  GLuint   id;
-  guint    size_on_gpu;
-} GskGLBufferShadow;
-
 typedef struct _GskGLBuffer
 {
-  GArray            *buffer;
-  GskGLBufferShadow  shadows[GSK_GL_BUFFER_N_BUFFERS];
-  GLenum             target;
-  guint              current;
-  guint              element_size;
+  guint8 *buffer;
+  guint   buffer_pos;
+  guint   buffer_len;
+  guint   count;
+  GLenum  target;
+  guint   element_size;
 } GskGLBuffer;
 
 GskGLBuffer *gsk_gl_buffer_new    (GLenum       target,
                                    guint        element_size);
 void         gsk_gl_buffer_free   (GskGLBuffer *buffer);
-void         gsk_gl_buffer_submit (GskGLBuffer *buffer);
+GLuint       gsk_gl_buffer_submit (GskGLBuffer *buffer);
 
 static inline gpointer
 gsk_gl_buffer_advance (GskGLBuffer *buffer,
                        guint        count,
                        guint       *offset)
 {
-  *offset = buffer->buffer->len;
-  g_array_set_size (buffer->buffer, buffer->buffer->len + count);
-  return (guint8 *)buffer->buffer->data + (*offset * buffer->element_size);
+  gpointer ret;
+  gsize to_alloc = count * buffer->element_size;
+
+  if G_UNLIKELY (buffer->buffer_pos + to_alloc > buffer->buffer_len)
+    {
+      buffer->buffer_len *= 2;
+      buffer->buffer = g_realloc (buffer->buffer, buffer->buffer_len);
+    }
+
+  *offset = buffer->count;
+  ret = buffer->buffer + buffer->buffer_pos;
+
+  buffer->buffer_pos += to_alloc;
+  buffer->count += count;
+
+  return ret;
 }
 
 static inline guint
 gsk_gl_buffer_get_offset (GskGLBuffer *buffer)
 {
-  return buffer->buffer->len;
+  return buffer->count;
 }
 
 G_END_DECLS

@@ -936,6 +936,7 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
   guint n_binds = 0;
   guint n_fbos = 0;
   guint n_uniforms = 0;
+  guint vbo_id;
 
   g_return_if_fail (GSK_IS_GL_COMMAND_QUEUE (self));
   g_return_if_fail (self->in_draw == FALSE);
@@ -961,7 +962,7 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
   glGenVertexArrays (1, &vao_id);
   glBindVertexArray (vao_id);
 
-  gsk_gl_buffer_submit (self->vertices);
+  vbo_id = gsk_gl_buffer_submit (self->vertices);
 
   /* 0 = position location */
   glEnableVertexAttribArray (0);
@@ -1110,6 +1111,7 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
       next_batch_index = batch->any.next_batch_index;
     }
 
+  glDeleteBuffers (1, &vbo_id);
   glDeleteVertexArrays (1, &vao_id);
 
   gdk_profiler_set_int_counter (self->metrics.n_binds, n_binds);

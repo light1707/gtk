@@ -24,22 +24,7 @@
 
 #include "gskglbufferprivate.h"
 
-#define N_BUFFERS 2
 #define RESERVED_SIZE 1024
-
-typedef struct
-{
-  GLuint   id;
-  guint    size_on_gpu;
-} GskGLBufferShadow;
-
-struct _GskGLBuffer
-{
-  GArray            *buffer;
-  GskGLBufferShadow  shadows[N_BUFFERS];
-  GLenum             target;
-  guint              current;
-};
 
 static void
 gsk_gl_buffer_shadow_init (GskGLBufferShadow *shadow,
@@ -129,8 +114,9 @@ gsk_gl_buffer_new (GLenum target,
   buffer->buffer = g_array_sized_new (FALSE, FALSE, element_size, RESERVED_SIZE);
   buffer->target = target;
   buffer->current = 0;
+  buffer->element_size = element_size;
 
-  for (guint i = 0; i < N_BUFFERS; i++)
+  for (guint i = 0; i < GSK_GL_BUFFER_N_BUFFERS; i++)
     gsk_gl_buffer_shadow_init (&buffer->shadows[i],
                                target,
                                element_size,
@@ -145,7 +131,7 @@ gsk_gl_buffer_submit (GskGLBuffer *buffer)
   gsk_gl_buffer_shadow_submit (&buffer->shadows[buffer->current],
                                buffer->target,
                                buffer->buffer);
-  buffer->current = (buffer->current + 1) % N_BUFFERS;
+  buffer->current = (buffer->current + 1) % GSK_GL_BUFFER_N_BUFFERS;
   buffer->buffer->len = 0;
 }
 
@@ -154,26 +140,7 @@ gsk_gl_buffer_free (GskGLBuffer *buffer)
 {
   buffer->target = 0;
   buffer->current = 0;
-  for (guint i = 0; i < N_BUFFERS; i++)
+  for (guint i = 0; i < GSK_GL_BUFFER_N_BUFFERS; i++)
     gsk_gl_buffer_shadow_destroy (&buffer->shadows[i]);
   g_free (buffer);
-}
-
-gpointer
-gsk_gl_buffer_advance (GskGLBuffer *buffer,
-                       guint        count,
-                       guint       *offset)
-{
-
-  *offset = buffer->buffer->len;
-  g_array_set_size (buffer->buffer, buffer->buffer->len + count);
-  return (guint8 *)buffer->buffer->data + (*offset * g_array_get_element_size (buffer->buffer));
-}
-
-guint
-gsk_gl_buffer_get_offset (GskGLBuffer *buffer)
-{
-  g_return_val_if_fail (buffer != NULL, 0);
-
-  return buffer->buffer->len;
 }

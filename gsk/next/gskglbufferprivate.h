@@ -26,16 +26,43 @@
 
 G_BEGIN_DECLS
 
-typedef struct _GskGLBuffer GskGLBuffer;
+#define GSK_GL_BUFFER_N_BUFFERS 2
 
-GskGLBuffer *gsk_gl_buffer_new        (GLenum       target,
-                                       guint        element_size);
-void         gsk_gl_buffer_free       (GskGLBuffer *buffer);
-void         gsk_gl_buffer_submit     (GskGLBuffer *buffer);
-guint        gsk_gl_buffer_get_offset (GskGLBuffer *buffer);
-gpointer     gsk_gl_buffer_advance    (GskGLBuffer *buffer,
-                                       guint        count,
-                                       guint       *offset);
+typedef struct _GskGLBufferShadow
+{
+  GLuint   id;
+  guint    size_on_gpu;
+} GskGLBufferShadow;
+
+typedef struct _GskGLBuffer
+{
+  GArray            *buffer;
+  GskGLBufferShadow  shadows[GSK_GL_BUFFER_N_BUFFERS];
+  GLenum             target;
+  guint              current;
+  guint              element_size;
+} GskGLBuffer;
+
+GskGLBuffer *gsk_gl_buffer_new    (GLenum       target,
+                                   guint        element_size);
+void         gsk_gl_buffer_free   (GskGLBuffer *buffer);
+void         gsk_gl_buffer_submit (GskGLBuffer *buffer);
+
+static inline gpointer
+gsk_gl_buffer_advance (GskGLBuffer *buffer,
+                       guint        count,
+                       guint       *offset)
+{
+  *offset = buffer->buffer->len;
+  g_array_set_size (buffer->buffer, buffer->buffer->len + count);
+  return (guint8 *)buffer->buffer->data + (*offset * buffer->element_size);
+}
+
+static inline guint
+gsk_gl_buffer_get_offset (GskGLBuffer *buffer)
+{
+  return buffer->buffer->len;
+}
 
 G_END_DECLS
 

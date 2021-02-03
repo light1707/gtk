@@ -400,17 +400,18 @@ gsk_gl_command_queue_uniform_snapshot_cb (const GskGLUniformInfo *info,
                                           gpointer                user_data)
 {
   GskGLCommandQueue *self = user_data;
-  GskGLCommandUniform uniform;
+  GskGLCommandUniform *uniform;
 
   g_assert (info != NULL);
   g_assert (info->initial == FALSE);
   g_assert (info->changed == TRUE);
   g_assert (GSK_IS_GL_COMMAND_QUEUE (self));
 
-  uniform.location = location;
-  uniform.info = *info;
+  g_array_set_size (self->batch_uniforms, self->batch_uniforms->len+1);
 
-  g_array_append_val (self->batch_uniforms, uniform);
+  uniform = &g_array_index (self->batch_uniforms, GskGLCommandUniform, self->batch_uniforms->len-1);
+  uniform->location = location;
+  uniform->info = *info;
 }
 
 void

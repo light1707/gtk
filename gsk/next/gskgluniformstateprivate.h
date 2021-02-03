@@ -25,6 +25,12 @@
 
 G_BEGIN_DECLS
 
+typedef struct _GskGLUniformProgram
+{
+  GArray *uniform_info;
+  guint   n_changed;
+} GskGLUniformProgram;
+
 typedef struct _GskGLUniformState
 {
   GArray *program_info;
@@ -190,6 +196,33 @@ gsk_gl_uniform_state_get_uniform_data (const GskGLUniformState *state,
 {
   return (gconstpointer)(state->values_buf + offset);
 }
+
+#define gsk_gl_uniform_state_snapshot(state, program_id, callback, user_data)                      \
+  G_STMT_START {                                                                                   \
+    GskGLUniformProgram *program_info;                                                             \
+                                                                                                   \
+    if G_UNLIKELY (program_id >= state->program_info->len)                                         \
+      break;                                                                                       \
+                                                                                                   \
+    program_info = &g_array_index (state->program_info, GskGLUniformProgram, program_id);          \
+    if (program_info->n_changed == 0)                                                              \
+      break;                                                                                       \
+                                                                                                   \
+    for (guint i = 0; i < program_info->uniform_info->len; i++)                                    \
+      {                                                                                            \
+        GskGLUniformInfo *info = &g_array_index (program_info->uniform_info, GskGLUniformInfo, i); \
+                                                                                                   \
+        if (!info->changed)                                                                        \
+          continue;                                                                                \
+                                                                                                   \
+        callback (info, i, user_data);                                                             \
+                                                                                                   \
+        info->changed = FALSE;                                                                     \
+        info->send_corners = FALSE;                                                                \
+      }                                                                                            \
+                                                                                                   \
+    program_info->n_changed = 0;                                                                   \
+  } G_STMT_END
 
 G_END_DECLS
 

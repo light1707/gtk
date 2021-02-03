@@ -84,12 +84,6 @@ static guint8 uniform_sizes[] = {
       }                                                                                 \
   } G_STMT_END
 
-typedef struct
-{
-  GArray *uniform_info;
-  guint   n_changed;
-} ProgramInfo;
-
 static inline gboolean
 rounded_rect_equal (const GskRoundedRect *r1,
                     const GskRoundedRect *r2)
@@ -114,7 +108,7 @@ gsk_gl_uniform_state_new (void)
   GskGLUniformState *state;
 
   state = g_atomic_rc_box_new0 (GskGLUniformState);
-  state->program_info = g_array_new (FALSE, TRUE, sizeof (ProgramInfo));
+  state->program_info = g_array_new (FALSE, TRUE, sizeof (GskGLUniformProgram));
   state->values_len = 4096;
   state->values_pos = 0;
   state->values_buf = g_malloc (4096);
@@ -155,7 +149,7 @@ program_changed (GskGLUniformState *state,
       info->changed = TRUE;
       info->initial = FALSE;
 
-      g_array_index (state->program_info, ProgramInfo, program).n_changed++;
+      g_array_index (state->program_info, GskGLUniformProgram, program).n_changed++;
     }
 }
 
@@ -163,14 +157,14 @@ void
 gsk_gl_uniform_state_clear_program (GskGLUniformState *state,
                                     guint              program)
 {
-  ProgramInfo *program_info;
+  GskGLUniformProgram *program_info;
 
   g_return_if_fail (state != NULL);
 
   if (program == 0 || program >= state->program_info->len)
     return;
 
-  program_info = &g_array_index (state->program_info, ProgramInfo, program);
+  program_info = &g_array_index (state->program_info, GskGLUniformProgram, program);
   program_info->n_changed = 0;
   g_clear_pointer (&program_info->uniform_info, g_array_unref);
 }
@@ -216,7 +210,7 @@ get_uniform (GskGLUniformState  *state,
              guint               location,
              GskGLUniformInfo  **infoptr)
 {
-  ProgramInfo *program_info;
+  GskGLUniformProgram *program_info;
   GskGLUniformInfo *info;
   guint offset;
 
@@ -233,7 +227,7 @@ get_uniform (GskGLUniformState  *state,
 
   /* Fast path for common case (state already initialized) */
   if G_LIKELY (program < state->program_info->len &&
-               (program_info = &g_array_index (state->program_info, ProgramInfo, program)) &&
+               (program_info = &g_array_index (state->program_info, GskGLUniformProgram, program)) &&
                program_info->uniform_info != NULL &&
                location < program_info->uniform_info->len)
     {
@@ -275,12 +269,12 @@ get_uniform (GskGLUniformState  *state,
 setup_info:
 
   if (program >= state->program_info->len ||
-      g_array_index (state->program_info, ProgramInfo, program).uniform_info == NULL)
+      g_array_index (state->program_info, GskGLUniformProgram, program).uniform_info == NULL)
     {
       if (program >= state->program_info->len)
         g_array_set_size (state->program_info, program + 1);
 
-      program_info = &g_array_index (state->program_info, ProgramInfo, program);
+      program_info = &g_array_index (state->program_info, GskGLUniformProgram, program);
       program_info->uniform_info = g_array_new (FALSE, TRUE, sizeof (GskGLUniformInfo));
       program_info->n_changed = 0;
     }
@@ -797,48 +791,6 @@ gsk_gl_uniform_state_set4fv (GskGLUniformState *state,
 }
 
 void
-gsk_gl_uniform_state_snapshot (GskGLUniformState         *state,
-                               guint                      program_id,
-                               GskGLUniformStateCallback  callback,
-                               gpointer                   user_data)
-{
-  ProgramInfo *program_info;
-
-  g_assert (state != NULL);
-  g_assert (program_id > 0);
-
-  if (program_id >= state->program_info->len)
-    return;
-
-  program_info = &g_array_index (state->program_info, ProgramInfo, program_id);
-  if (program_info->n_changed == 0 || program_info->uniform_info == NULL)
-    return;
-
-  for (guint i = 0; i < program_info->uniform_info->len; i++)
-    {
-      GskGLUniformInfo *info = &g_array_index (program_info->uniform_info, GskGLUniformInfo, i);
-
-#ifdef G_ENABLE_DEBUG
-      {
-        guint size = uniform_sizes[info->format] * MAX (1, info->array_count);
-        g_assert (info->format == 0 || info->offset + size <= state->values_pos);
-        g_assert (!info->send_corners || info->changed);
-      }
-#endif
-
-      if (info->format == 0 || !info->changed)
-        continue;
-
-      callback (info, i, user_data);
-
-      info->changed = FALSE;
-      info->send_corners = FALSE;
-    }
-
-  program_info->n_changed = 0;
-}
-
-void
 gsk_gl_uniform_state_end_frame (GskGLUniformState *state)
 {
   guint allocator = 0;
@@ -853,7 +805,7 @@ gsk_gl_uniform_state_end_frame (GskGLUniformState *state)
 
   for (guint i = 0; i < state->program_info->len; i++)
     {
-      const ProgramInfo *program_info = &g_array_index (state->program_info, ProgramInfo, i);
+      const GskGLUniformProgram *program_info = &g_array_index (state->program_info, GskGLUniformProgram, i);
 
       if (program_info->uniform_info == NULL)
         continue;

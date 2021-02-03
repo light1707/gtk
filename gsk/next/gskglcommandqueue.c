@@ -394,7 +394,7 @@ gsk_gl_command_queue_begin_draw (GskGLCommandQueue     *self,
   self->in_draw = TRUE;
 }
 
-static void
+static inline void
 gsk_gl_command_queue_uniform_snapshot_cb (const GskGLUniformInfo *info,
                                           guint                   location,
                                           gpointer                user_data)

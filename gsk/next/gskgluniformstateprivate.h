@@ -185,8 +185,8 @@ void               gsk_gl_uniform_state_snapshot         (GskGLUniformState     
 gsize              gsk_gl_uniform_format_size            (GskGLUniformFormat         format);
 
 static inline gconstpointer
-gsk_gl_uniform_state_get_uniform_data (GskGLUniformState *state,
-                                       guint              offset)
+gsk_gl_uniform_state_get_uniform_data (const GskGLUniformState *state,
+                                       guint                    offset)
 {
   return (gconstpointer)(state->values_buf + offset);
 }

@@ -183,13 +183,36 @@ typedef struct _GskGLRenderOffscreen
   guint was_offscreen : 1;
 } GskGLRenderOffscreen;
 
-static void     gsk_gl_render_job_begin_draw                (GskGLRenderJob       *job,
-                                                             GskGLProgram         *program);
 static void     gsk_gl_render_job_visit_node                (GskGLRenderJob       *job,
                                                              GskRenderNode        *node);
 static gboolean gsk_gl_render_job_visit_node_with_offscreen (GskGLRenderJob       *job,
                                                              GskRenderNode        *node,
                                                              GskGLRenderOffscreen *offscreen);
+
+static inline void
+gsk_gl_render_job_begin_draw (GskGLRenderJob *job,
+                              GskGLProgram   *program)
+{
+  /* If the program is up to our shared state value, then we can ignore callign
+   * gsk_gl_program_begin_draw() with the initial values saving a bunch of
+   * compares. Last checked this saves about 25-35% of the compares when
+   * running widget-factory on the first page.
+   */
+  if G_LIKELY (program->last_shared_state == job->driver->last_shared_state)
+    {
+      gsk_gl_command_queue_begin_draw (job->command_queue, program->id, &job->viewport);
+    }
+  else
+    {
+      gsk_gl_program_begin_draw (program,
+                                 &job->viewport,
+                                 &job->projection,
+                                 &job->current_modelview->matrix,
+                                 &job->current_clip->rect,
+                                 job->alpha);
+      program->last_shared_state = job->driver->last_shared_state;
+    }
+}
 
 static inline void
 init_full_texture_region (GskGLRenderOffscreen *offscreen)
@@ -3725,32 +3748,4 @@ gsk_gl_render_job_free (GskGLRenderJob *job)
   g_clear_pointer (&job->modelview, g_array_unref);
   g_clear_pointer (&job->clip, g_array_unref);
   g_slice_free (GskGLRenderJob, job);
-}
-
-static void
-gsk_gl_render_job_begin_draw (GskGLRenderJob *job,
-                              GskGLProgram   *program)
-{
-  /* If the program is up to our shared state value,
-   * then we can ignore callign gsk_gl_program_begin_draw()
-   * with the initial values saving a bunch of compares.
-   *
-   * Last checked this saves about 25% of the compares.
-   */
-  if G_LIKELY (program->last_shared_state == job->driver->last_shared_state)
-    {
-      gsk_gl_command_queue_begin_draw (job->command_queue,
-                                       program->id,
-                                       &job->viewport);
-    }
-  else
-    {
-      gsk_gl_program_begin_draw (program,
-                                 &job->viewport,
-                                 &job->projection,
-                                 gsk_gl_render_job_get_modelview_matrix (job),
-                                 gsk_gl_render_job_get_clip (job),
-                                 job->alpha);
-      program->last_shared_state = job->driver->last_shared_state;
-    }
 }

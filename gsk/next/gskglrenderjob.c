@@ -71,6 +71,22 @@
 #define rounded_rect_corner3(r)   rounded_rect_bottom_left(r)
 #define rounded_rect_corner(r, i) (rounded_rect_corner##i(r))
 
+typedef struct _GskGLRenderClip
+{
+  GskRoundedRect rect;
+  guint          is_rectilinear : 1;
+} GskGLRenderClip;
+
+typedef struct _GskGLRenderModelview
+{
+  GskTransform *transform;
+  float scale_x;
+  float scale_y;
+  float offset_x_before;
+  float offset_y_before;
+  graphene_matrix_t matrix;
+} GskGLRenderModelview;
+
 struct _GskGLRenderJob
 {
   /* The context containing the framebuffer we are drawing to. Generally this
@@ -130,6 +146,10 @@ struct _GskGLRenderJob
   float scale_x;
   float scale_y;
 
+  /* Cached pointers */
+  const GskGLRenderClip *current_clip;
+  const GskGLRenderModelview *current_modelview;
+
   /* If we should be rendering red zones over fallback nodes */
   guint debug_fallback : 1;
 };
@@ -145,22 +165,6 @@ typedef struct GskGLRenderState
   float             scale_x;
   float             scale_y;
 } GskGLRenderState;
-
-typedef struct _GskGLRenderClip
-{
-  GskRoundedRect rect;
-  guint          is_rectilinear : 1;
-} GskGLRenderClip;
-
-typedef struct _GskGLRenderModelview
-{
-  GskTransform *transform;
-  float scale_x;
-  float scale_y;
-  float offset_x_before;
-  float offset_y_before;
-  graphene_matrix_t matrix;
-} GskGLRenderModelview;
 
 typedef struct _GskGLRenderOffscreen
 {
@@ -388,24 +392,20 @@ init_projection_matrix (graphene_matrix_t     *projection,
   graphene_matrix_scale (projection, 1, -1, 1);
 }
 
-static inline graphene_matrix_t *
+static inline const graphene_matrix_t *
 gsk_gl_render_job_get_modelview_matrix (GskGLRenderJob *job)
 {
   g_assert (job->modelview->len > 0);
 
-  return &g_array_index (job->modelview,
-                         GskGLRenderModelview,
-                         job->modelview->len - 1).matrix;
+  return &job->current_modelview->matrix;
 }
 
-static inline GskGLRenderModelview *
+static inline const GskGLRenderModelview *
 gsk_gl_render_job_get_modelview (GskGLRenderJob *job)
 {
   g_assert (job->modelview->len > 0);
 
-  return &g_array_index (job->modelview,
-                         GskGLRenderModelview,
-                         job->modelview->len - 1);
+  return job->current_modelview;
 }
 
 static void
@@ -488,6 +488,8 @@ gsk_gl_render_job_set_modelview (GskGLRenderJob *job,
   job->offset_y = 0;
   job->scale_x = modelview->scale_x;
   job->scale_y = modelview->scale_y;
+
+  job->current_modelview = modelview;
 }
 
 static void
@@ -540,6 +542,8 @@ gsk_gl_render_job_push_modelview (GskGLRenderJob *job,
   job->offset_y = 0;
   job->scale_x = modelview->scale_x;
   job->scale_y = modelview->scale_y;
+
+  job->current_modelview = modelview;
 }
 
 static void
@@ -568,6 +572,12 @@ gsk_gl_render_job_pop_modelview (GskGLRenderJob *job)
 
       job->scale_x = head->scale_x;
       job->scale_y = head->scale_y;
+
+      job->current_modelview = head;
+    }
+  else
+    {
+      job->current_modelview = NULL;
     }
 }
 
@@ -580,10 +590,9 @@ gsk_gl_render_job_has_clip (GskGLRenderJob *job)
 static inline gboolean
 gsk_gl_render_job_clip_is_rectilinear (GskGLRenderJob *job)
 {
-  if (job->clip->len == 0)
-    return TRUE;
-  else
-    return g_array_index (job->clip, GskGLRenderClip, job->clip->len - 1).is_rectilinear;
+  g_assert (job->clip->len > 0);
+
+  return job->current_clip->is_rectilinear;
 }
 
 static inline const GskRoundedRect *
@@ -591,7 +600,7 @@ gsk_gl_render_job_get_clip (GskGLRenderJob *job)
 {
   g_assert (job->clip->len > 0);
 
-  return &g_array_index (job->clip, GskGLRenderClip, job->clip->len - 1).rect;
+  return &job->current_clip->rect;
 }
 
 static void
@@ -611,6 +620,8 @@ gsk_gl_render_job_push_clip (GskGLRenderJob       *job,
   clip = &g_array_index (job->clip, GskGLRenderClip, job->clip->len - 1);
   memcpy (&clip->rect, rect, sizeof *rect);
   clip->is_rectilinear = gsk_rounded_rect_is_rectilinear (rect);
+
+  job->current_clip = clip;
 }
 
 static void
@@ -623,6 +634,8 @@ gsk_gl_render_job_pop_clip (GskGLRenderJob *job)
   job->driver->last_shared_state++;
 
   job->clip->len--;
+
+  job->current_clip = &g_array_index (job->clip, GskGLRenderClip, job->clip->len - 1);
 }
 
 static inline void
@@ -685,7 +698,7 @@ gsk_gl_render_job_transform_bounds (GskGLRenderJob        *job,
                                     const graphene_rect_t *rect,
                                     graphene_rect_t       *out_rect)
 {
-  GskGLRenderModelview *modelview;
+  const GskGLRenderModelview *modelview;
   graphene_rect_t r;
 
   g_assert (job != NULL);
@@ -2535,12 +2548,7 @@ gsk_gl_render_job_visit_text_node (GskGLRenderJob *job,
   lookup.font = (PangoFont *)font;
   lookup.scale = (guint) (text_scale * 1024);
 
-  gsk_gl_program_begin_draw (program,
-                             &job->viewport,
-                             &job->projection,
-                             gsk_gl_render_job_get_modelview_matrix (job),
-                             gsk_gl_render_job_get_clip (job),
-                             job->alpha);
+  gsk_gl_render_job_begin_draw (job, program);
 
   /* We use one quad per character */
   for (guint i = 0; i < num_glyphs; i++)
@@ -3702,9 +3710,12 @@ gsk_gl_render_job_new (GskNextDriver         *driver,
 void
 gsk_gl_render_job_free (GskGLRenderJob *job)
 {
+  job->current_modelview = NULL;
+  job->current_clip = NULL;
+
   while (job->modelview->len > 0)
     {
-      GskGLRenderModelview *modelview = gsk_gl_render_job_get_modelview (job);
+      GskGLRenderModelview *modelview = &g_array_index (job->modelview, GskGLRenderModelview, job->modelview->len-1);
       g_clear_pointer (&modelview->transform, gsk_transform_unref);
       job->modelview->len--;
     }

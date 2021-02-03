@@ -113,6 +113,9 @@ struct _GskNextDriver
 
   gint64 current_frame_id;
 
+  /* Monotonic counter to reduce shared state changes */
+  guint last_shared_state;
+
   guint debug : 1;
   guint in_frame : 1;
 };

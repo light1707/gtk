@@ -130,9 +130,6 @@ struct _GskGLRenderJob
   float scale_x;
   float scale_y;
 
-  /* Counter whenever we change shared state */
-  guint last_shared_state;
-
   /* If we should be rendering red zones over fallback nodes */
   guint debug_fallback : 1;
 };
@@ -472,7 +469,7 @@ gsk_gl_render_job_set_modelview (GskGLRenderJob *job,
   g_assert (job != NULL);
   g_assert (job->modelview != NULL);
 
-  job->last_shared_state++;
+  job->driver->last_shared_state++;
 
   g_array_set_size (job->modelview, job->modelview->len + 1);
 
@@ -503,7 +500,7 @@ gsk_gl_render_job_push_modelview (GskGLRenderJob *job,
   g_assert (job->modelview != NULL);
   g_assert (transform != NULL);
 
-  job->last_shared_state++;
+  job->driver->last_shared_state++;
 
   g_array_set_size (job->modelview, job->modelview->len + 1);
 
@@ -554,7 +551,7 @@ gsk_gl_render_job_pop_modelview (GskGLRenderJob *job)
   g_assert (job->modelview);
   g_assert (job->modelview->len > 0);
 
-  job->last_shared_state++;
+  job->driver->last_shared_state++;
 
   head = gsk_gl_render_job_get_modelview (job);
 
@@ -607,7 +604,7 @@ gsk_gl_render_job_push_clip (GskGLRenderJob       *job,
   g_assert (job->clip != NULL);
   g_assert (rect != NULL);
 
-  job->last_shared_state++;
+  job->driver->last_shared_state++;
 
   g_array_set_size (job->clip, job->clip->len + 1);
 
@@ -623,7 +620,7 @@ gsk_gl_render_job_pop_clip (GskGLRenderJob *job)
   g_assert (job->clip != NULL);
   g_assert (job->clip->len > 0);
 
-  job->last_shared_state++;
+  job->driver->last_shared_state++;
 
   job->clip->len--;
 }
@@ -635,7 +632,7 @@ gsk_gl_render_job_offset (GskGLRenderJob *job,
 {
   if (offset_x || offset_y)
     {
-      job->last_shared_state++;
+      job->driver->last_shared_state++;
 
       job->offset_x += offset_x;
       job->offset_y += offset_y;
@@ -649,7 +646,7 @@ gsk_gl_render_state_save (GskGLRenderState *state,
   g_assert (state != NULL);
   g_assert (job != NULL);
 
-  job->last_shared_state++;
+  job->driver->last_shared_state++;
 
   memcpy (&state->viewport, &job->viewport, sizeof state->viewport);
   memcpy (&state->projection, &job->projection, sizeof state->projection);
@@ -669,7 +666,7 @@ gsk_gl_render_state_restore (GskGLRenderState *state,
   g_assert (state != NULL);
   g_assert (job != NULL);
 
-  job->last_shared_state++;
+  job->driver->last_shared_state++;
 
   memcpy (&job->viewport, &state->viewport, sizeof state->viewport);
   memcpy (&job->projection, &state->projection, sizeof state->projection);
@@ -2466,7 +2463,7 @@ gsk_gl_render_job_visit_opacity_node (GskGLRenderJob *job,
   float new_alpha = job->alpha * opacity;
 
   job->alpha = new_alpha;
-  job->last_shared_state++;
+  job->driver->last_shared_state++;
 
   if (new_alpha >= ((float)0x00ff / (float)0xffff))
     {
@@ -2502,7 +2499,7 @@ gsk_gl_render_job_visit_opacity_node (GskGLRenderJob *job,
     }
 
   job->alpha = prev_alpha;
-  job->last_shared_state++;
+  job->driver->last_shared_state++;
 }
 
 static void
@@ -3501,8 +3498,6 @@ gsk_gl_render_job_visit_node_with_offscreen (GskGLRenderJob       *job,
   job->offset_y = 0;
   job->alpha = 1.0f;
 
-  job->last_shared_state++;
-
   gsk_gl_render_job_visit_node (job, node);
 
   if (offscreen->reset_clip)
@@ -3734,7 +3729,7 @@ gsk_gl_render_job_begin_draw (GskGLRenderJob *job,
    *
    * Last checked this saves about 25% of the compares.
    */
-  if G_LIKELY (program->last_shared_state == job->last_shared_state)
+  if G_LIKELY (program->last_shared_state == job->driver->last_shared_state)
     {
       gsk_gl_command_queue_begin_draw (job->command_queue,
                                        program->id,
@@ -3748,6 +3743,6 @@ gsk_gl_render_job_begin_draw (GskGLRenderJob *job,
                                  gsk_gl_render_job_get_modelview_matrix (job),
                                  gsk_gl_render_job_get_clip (job),
                                  job->alpha);
-      program->last_shared_state = job->last_shared_state;
+      program->last_shared_state = job->driver->last_shared_state;
     }
 }

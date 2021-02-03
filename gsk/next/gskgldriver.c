@@ -314,6 +314,7 @@ gsk_next_driver_class_init (GskNextDriverClass *klass)
 static void
 gsk_next_driver_init (GskNextDriver *self)
 {
+  self->last_shared_state = 1;
   self->autorelease_framebuffers = g_array_new (FALSE, FALSE, sizeof (guint));
   self->textures = g_hash_table_new_full (NULL, NULL, NULL,
                                           (GDestroyNotify)gsk_gl_texture_free);

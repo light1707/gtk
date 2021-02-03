@@ -635,9 +635,9 @@ gsk_gl_command_queue_delete_program (GskGLCommandQueue *self,
 }
 
 static void
-apply_uniform (const GskGLUniformState *state,
-               const GskGLUniformInfo  *info,
-               guint                    location)
+apply_uniform (gconstpointer    dataptr,
+               GskGLUniformInfo info,
+               guint            location)
 {
   const union {
     graphene_matrix_t matrix[0];
@@ -645,11 +645,9 @@ apply_uniform (const GskGLUniformState *state,
     float fval[0];
     int ival[0];
     guint uval[0];
-  } *data;
+  } *data = dataptr;
 
-  data = gsk_gl_uniform_state_get_uniform_data (state, info->offset);
-
-  switch (info->format)
+  switch (info.format)
     {
     case GSK_GL_UNIFORM_FORMAT_1F:
       glUniform1f (location, data->fval[0]);
@@ -668,19 +666,19 @@ apply_uniform (const GskGLUniformState *state,
     break;
 
     case GSK_GL_UNIFORM_FORMAT_1FV:
-      glUniform1fv (location, info->array_count, data->fval);
+      glUniform1fv (location, info.array_count, data->fval);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_2FV:
-      glUniform2fv (location, info->array_count, data->fval);
+      glUniform2fv (location, info.array_count, data->fval);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_3FV:
-      glUniform3fv (location, info->array_count, data->fval);
+      glUniform3fv (location, info.array_count, data->fval);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_4FV:
-      glUniform4fv (location, info->array_count, data->fval);
+      glUniform4fv (location, info.array_count, data->fval);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_1I:
@@ -716,7 +714,7 @@ apply_uniform (const GskGLUniformState *state,
     break;
 
     case GSK_GL_UNIFORM_FORMAT_ROUNDED_RECT:
-      if (info->send_corners)
+      if (info.send_corners)
         glUniform4fv (location, 3, (const float *)&data->rounded_rect[0]);
       else
         glUniform4fv (location, 1, (const float *)&data->rounded_rect[0]);
@@ -931,7 +929,8 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
 
                   g_assert (index < self->batch_uniforms->len);
 
-                  apply_uniform (self->uniforms, &u->info, u->location);
+                  apply_uniform (gsk_gl_uniform_state_get_uniform_data (self->uniforms, u->info.offset),
+                                 u->info, u->location);
                 }
 
               n_uniforms += batch->draw.uniform_count;

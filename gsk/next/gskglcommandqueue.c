@@ -653,74 +653,74 @@ apply_uniform (const GskGLUniformState *state,
     {
     case GSK_GL_UNIFORM_FORMAT_1F:
       glUniform1f (location, data->fval[0]);
-      break;
+    break;
 
     case GSK_GL_UNIFORM_FORMAT_2F:
       glUniform2f (location, data->fval[0], data->fval[1]);
-      break;
+    break;
 
     case GSK_GL_UNIFORM_FORMAT_3F:
       glUniform3f (location, data->fval[0], data->fval[1], data->fval[2]);
-      break;
+    break;
 
     case GSK_GL_UNIFORM_FORMAT_4F:
       glUniform4f (location, data->fval[0], data->fval[1], data->fval[2], data->fval[3]);
-      break;
+    break;
 
     case GSK_GL_UNIFORM_FORMAT_1FV:
       glUniform1fv (location, info->array_count, data->fval);
-      break;
+    break;
 
     case GSK_GL_UNIFORM_FORMAT_2FV:
       glUniform2fv (location, info->array_count, data->fval);
-      break;
+    break;
 
     case GSK_GL_UNIFORM_FORMAT_3FV:
       glUniform3fv (location, info->array_count, data->fval);
-      break;
+    break;
 
     case GSK_GL_UNIFORM_FORMAT_4FV:
       glUniform4fv (location, info->array_count, data->fval);
-      break;
+    break;
 
     case GSK_GL_UNIFORM_FORMAT_1I:
     case GSK_GL_UNIFORM_FORMAT_TEXTURE:
       glUniform1i (location, data->ival[0]);
-      break;
+    break;
 
     case GSK_GL_UNIFORM_FORMAT_2I:
       glUniform2i (location, data->ival[0], data->ival[1]);
-      break;
+    break;
 
     case GSK_GL_UNIFORM_FORMAT_3I:
       glUniform3i (location, data->ival[0], data->ival[1], data->ival[2]);
-      break;
+    break;
 
     case GSK_GL_UNIFORM_FORMAT_4I:
       glUniform4i (location, data->ival[0], data->ival[1], data->ival[2], data->ival[3]);
-      break;
+    break;
 
     case GSK_GL_UNIFORM_FORMAT_1UI:
       glUniform1ui (location, data->uval[0]);
-      break;
+    break;
 
     case GSK_GL_UNIFORM_FORMAT_MATRIX: {
       float mat[16];
       graphene_matrix_to_float (&data->matrix[0], mat);
       glUniformMatrix4fv (location, 1, GL_FALSE, mat);
-      break;
     }
+    break;
 
     case GSK_GL_UNIFORM_FORMAT_COLOR:
       glUniform4fv (location, 1, &data->fval[0]);
-      break;
+    break;
 
     case GSK_GL_UNIFORM_FORMAT_ROUNDED_RECT:
       if (info->send_corners)
         glUniform4fv (location, 3, (const float *)&data->rounded_rect[0]);
       else
         glUniform4fv (location, 1, (const float *)&data->rounded_rect[0]);
-      break;
+    break;
 
     default:
       g_assert_not_reached ();

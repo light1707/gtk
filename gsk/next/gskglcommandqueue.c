@@ -739,21 +739,31 @@ apply_viewport (guint16 *current_width,
 }
 
 static inline void
-apply_scissor (guint                  framebuffer,
+apply_scissor (gboolean              *state,
+               guint                  framebuffer,
                const graphene_rect_t *scissor,
                gboolean               has_scissor)
 {
   if (framebuffer != 0 || !has_scissor)
     {
-      glDisable (GL_SCISSOR_TEST);
-      return;
+      if (*state == TRUE)
+        {
+          glDisable (GL_SCISSOR_TEST);
+          *state = TRUE;
+        }
     }
-
-  glEnable (GL_SCISSOR_TEST);
-  glScissor (scissor->origin.x,
-             scissor->origin.y,
-             scissor->size.width,
-             scissor->size.height);
+  else
+    {
+      if (*state == FALSE)
+        {
+          glEnable (GL_SCISSOR_TEST);
+          glScissor (scissor->origin.x,
+                     scissor->origin.y,
+                     scissor->size.width,
+                     scissor->size.height);
+          *state = TRUE;
+        }
+    }
 }
 
 /**
@@ -772,6 +782,7 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
                               const cairo_region_t *scissor)
 {
   gboolean has_scissor = scissor != NULL;
+  gboolean scissor_state = -1;
   graphene_rect_t scissor_test;
   int framebuffer = -1;
   GLuint vao_id;
@@ -838,7 +849,7 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
       scissor_test.size.height = r.height * scale_factor;
     }
 
-  apply_scissor (framebuffer, &scissor_test, has_scissor);
+  apply_scissor (&scissor_state, framebuffer, &scissor_test, has_scissor);
 
   next_batch_index = 0;
 
@@ -857,7 +868,7 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
             {
               framebuffer = batch->clear.framebuffer;
               glBindFramebuffer (GL_FRAMEBUFFER, framebuffer);
-              apply_scissor (framebuffer, &scissor_test, has_scissor);
+              apply_scissor (&scissor_state, framebuffer, &scissor_test, has_scissor);
               n_fbos++;
             }
 
@@ -892,7 +903,7 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
             {
               framebuffer = batch->draw.framebuffer;
               glBindFramebuffer (GL_FRAMEBUFFER, framebuffer);
-              apply_scissor (framebuffer, &scissor_test, has_scissor);
+              apply_scissor (&scissor_state, framebuffer, &scissor_test, has_scissor);
               n_fbos++;
             }
 

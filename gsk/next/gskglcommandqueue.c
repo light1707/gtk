@@ -568,6 +568,7 @@ void
 gsk_gl_command_queue_push_debug_group (GskGLCommandQueue *self,
                                        const char        *debug_group)
 {
+#ifdef G_ENABLE_DEBUG
   GskGLCommandBatch *batch;
 
   g_assert (GSK_IS_GL_COMMAND_QUEUE (self));
@@ -581,11 +582,13 @@ gsk_gl_command_queue_push_debug_group (GskGLCommandQueue *self,
   batch->any.program = 0;
 
   enqueue_batch (self);
+#endif
 }
 
 void
 gsk_gl_command_queue_pop_debug_group (GskGLCommandQueue *self)
 {
+#ifdef G_ENABLE_DEBUG
   GskGLCommandBatch *batch;
 
   g_assert (GSK_IS_GL_COMMAND_QUEUE (self));
@@ -599,6 +602,7 @@ gsk_gl_command_queue_pop_debug_group (GskGLCommandQueue *self)
   batch->any.program = 0;
 
   enqueue_batch (self);
+#endif
 }
 
 GdkGLContext *

@@ -21,8 +21,7 @@
 #ifndef __GSK_GL_BUFFER_PRIVATE_H__
 #define __GSK_GL_BUFFER_PRIVATE_H__
 
-#include <glib.h>
-#include <epoxy/gl.h>
+#include "gskgltypesprivate.h"
 
 G_BEGIN_DECLS
 

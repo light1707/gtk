@@ -22,7 +22,6 @@
 
 #include <gsk/gskdebugprivate.h>
 #include <gio/gio.h>
-#include <epoxy/gl.h>
 #include <string.h>
 
 #include "gskglcommandqueueprivate.h"

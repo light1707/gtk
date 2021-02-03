@@ -20,8 +20,6 @@
 
 #include "config.h"
 
-#include <epoxy/gl.h>
-
 #include "gskglbufferprivate.h"
 
 /**

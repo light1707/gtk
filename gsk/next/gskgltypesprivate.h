@@ -21,8 +21,8 @@
 #ifndef __GSK_GL_TYPES_PRIVATE_H__
 #define __GSK_GL_TYPES_PRIVATE_H__
 
-#include <graphene.h>
 #include <epoxy/gl.h>
+#include <graphene.h>
 #include <gdk/gdk.h>
 #include <gsk/gsk.h>
 

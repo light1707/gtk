@@ -21,7 +21,6 @@
 #include "config.h"
 
 #include <gsk/gskroundedrectprivate.h>
-#include <epoxy/gl.h>
 #include <string.h>
 
 #include "gskgluniformstateprivate.h"

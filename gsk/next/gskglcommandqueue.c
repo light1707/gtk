@@ -23,7 +23,6 @@
 
 #include "config.h"
 
-#include <epoxy/gl.h>
 #include <string.h>
 
 #include <gdk/gdkglcontextprivate.h>

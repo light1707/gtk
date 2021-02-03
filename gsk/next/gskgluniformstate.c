@@ -67,14 +67,21 @@ static guint8 uniform_sizes[] = {
   0,
 };
 
-#define REPLACE_UNIFORM(info, u, format, count)                                                   \
-  G_STMT_START {                                                                                  \
-    guint offset;                                                                                 \
-    g_assert (uniform_sizes[format] > 0);                                                         \
-    u = alloc_uniform_data(state->uniform_data, uniform_sizes[format] * MAX (1, count), &offset); \
-    (info)->offset = offset;                                                                      \
-    /* We might have increased array length */                                                    \
-    (info)->array_count = count;                                                                  \
+#define REPLACE_UNIFORM(info, u, format, count)                                         \
+  G_STMT_START {                                                                        \
+    guint offset;                                                                       \
+    if ((info)->initial && count == (info)->array_count)                                \
+      {                                                                                 \
+        u = (gpointer)(state->values_buf + (info)->offset);                             \
+      }                                                                                 \
+    else                                                                                \
+      {                                                                                 \
+        g_assert (uniform_sizes[format] > 0);                                           \
+        u = alloc_uniform_data(state, uniform_sizes[format] * MAX (1, count), &offset); \
+        (info)->offset = offset;                                                        \
+        /* We might have increased array length */                                      \
+        (info)->array_count = count;                                                    \
+      }                                                                                 \
   } G_STMT_END
 
 typedef struct
@@ -108,7 +115,9 @@ gsk_gl_uniform_state_new (void)
 
   state = g_atomic_rc_box_new0 (GskGLUniformState);
   state->program_info = g_array_new (FALSE, TRUE, sizeof (ProgramInfo));
-  state->uniform_data = g_byte_array_new ();
+  state->values_len = 4096;
+  state->values_pos = 0;
+  state->values_buf = g_malloc (4096);
 
   return g_steal_pointer (&state);
 }
@@ -125,7 +134,7 @@ gsk_gl_uniform_state_finalize (gpointer data)
   GskGLUniformState *state = data;
 
   g_clear_pointer (&state->program_info, g_array_unref);
-  g_clear_pointer (&state->uniform_data, g_byte_array_unref);
+  g_clear_pointer (&state->values_buf, g_free);
 }
 
 void
@@ -166,37 +175,37 @@ gsk_gl_uniform_state_clear_program (GskGLUniformState *state,
   g_clear_pointer (&program_info->uniform_info, g_array_unref);
 }
 
-static gpointer
-alloc_uniform_data (GByteArray *buffer,
-                    guint       size,
-                    guint      *offset)
+static inline guint
+alloc_alignment (guint current_pos,
+                 guint size)
 {
   guint align = size > 8 ? 16 : (size > 4 ? 8 : 4);
-  guint masked = buffer->len & (align - 1);
-  guint old_len = buffer->len;
+  guint masked = current_pos & (align - 1);
 
   g_assert (size > 0);
   g_assert (align == 4 || align == 8 || align == 16);
   g_assert (masked < align);
 
-  /* Try to give a more natural alignment based on the size
-   * of the uniform. In case it's greater than 4 try to at least
-   * give us an 8-byte alignment to be sure we can dereference
-   * without a memcpy().
-   */
-  if (masked != 0)
+  return align - masked;
+}
+
+static gpointer
+alloc_uniform_data (GskGLUniformState *state,
+                    guint              size,
+                    guint             *offset)
+{
+  guint padding = alloc_alignment (state->values_pos, size);
+
+  if G_UNLIKELY (state->values_len - padding - size < state->values_pos)
     {
-      guint prefix_align = align - masked;
-      g_byte_array_set_size (buffer, buffer->len + prefix_align);
+      state->values_len *= 2;
+      state->values_buf = g_realloc (state->values_buf, state->values_len);
     }
 
-  *offset = buffer->len;
-  g_byte_array_set_size (buffer, buffer->len + size);
-  memset (buffer->data + old_len, 0, buffer->len - old_len);
+  *offset = state->values_pos + padding;
+  state->values_pos += padding + size;
 
-  g_assert ((*offset & (align - 1)) == 0);
-
-  return (gpointer)&buffer->data[*offset];
+  return state->values_buf + *offset;
 }
 
 static gpointer
@@ -238,7 +247,7 @@ get_uniform (GskGLUniformState  *state,
           if G_LIKELY (array_count <= info->array_count)
             {
               *infoptr = info;
-              return state->uniform_data->data + info->offset;
+              return state->values_buf + info->offset;
             }
 
           /* We found the uniform, but there is not enough space for the
@@ -289,7 +298,7 @@ setup_info:
         g_array_index (program_info->uniform_info, GskGLUniformInfo, i).initial = TRUE;
     }
 
-  alloc_uniform_data (state->uniform_data,
+  alloc_uniform_data (state,
                       uniform_sizes[format] * MAX (1, array_count),
                       &offset);
 
@@ -302,7 +311,7 @@ setup_info:
 
   *infoptr = info;
 
-  return state->uniform_data->data + offset;
+  return state->values_buf + offset;
 }
 
 void
@@ -812,7 +821,7 @@ gsk_gl_uniform_state_snapshot (GskGLUniformState         *state,
 #ifdef G_ENABLE_DEBUG
       {
         guint size = uniform_sizes[info->format] * MAX (1, info->array_count);
-        g_assert (info->format == 0 || info->offset + size <= state->uniform_data->len);
+        g_assert (info->format == 0 || info->offset + size <= state->values_pos);
         g_assert (!info->send_corners || info->changed);
       }
 #endif
@@ -832,18 +841,15 @@ gsk_gl_uniform_state_snapshot (GskGLUniformState         *state,
 void
 gsk_gl_uniform_state_end_frame (GskGLUniformState *state)
 {
-  GByteArray *buffer;
+  guint allocator = 0;
 
   g_return_if_fail (state != NULL);
 
   /* After a frame finishes, we want to remove all our copies of uniform
-   * data that isn't needed any longer. We just create a new byte array
-   * that contains the new data with the gaps removed.
-   *
-   * Create new buffer but with something similar in size to the previous
-   * frame as we can reduce chances of a realloc on the next frame.
+   * data that isn't needed any longer. Since we treat it as uninitialized
+   * after this frame (to reset it on first use next frame) we can just
+   * discard it but keep an allocation around to reuse.
    */
-  buffer = g_byte_array_sized_new (state->uniform_data->len);
 
   for (guint i = 0; i < state->program_info->len; i++)
     {
@@ -856,7 +862,6 @@ gsk_gl_uniform_state_end_frame (GskGLUniformState *state)
         {
           GskGLUniformInfo *info = &g_array_index (program_info->uniform_info, GskGLUniformInfo, j);
           guint size;
-          guint offset;
 
           if (info->format == 0)
             continue;
@@ -864,19 +869,22 @@ gsk_gl_uniform_state_end_frame (GskGLUniformState *state)
           /* Calculate how much size is needed for the uniform, including arrays */
           size = uniform_sizes[info->format] * MAX (1, info->array_count);
 
-          g_assert (info->offset + size <= state->uniform_data->len);
+          /* Adjust alignment for value */
+          allocator += alloc_alignment (allocator, size);
 
-          alloc_uniform_data (buffer, size, &offset);
-
-          info->offset = offset;
+          info->offset = allocator;
           info->changed = FALSE;
           info->initial = TRUE;
           info->send_corners = FALSE;
+
+          /* Now advance for this items data */
+          allocator += size;
         }
     }
 
-  g_clear_pointer (&state->uniform_data, g_byte_array_unref);
-  state->uniform_data = buffer;
+  state->values_pos = allocator;
+
+  g_assert (allocator <= state->values_len);
 }
 
 gsize

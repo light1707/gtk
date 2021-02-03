@@ -27,8 +27,10 @@ G_BEGIN_DECLS
 
 typedef struct _GskGLUniformState
 {
-  GArray     *program_info;
-  GByteArray *uniform_data;
+  GArray *program_info;
+  guint8 *values_buf;
+  guint   values_pos;
+  guint   values_len;
 } GskGLUniformState;
 
 typedef struct _GskGLUniformInfo
@@ -186,7 +188,7 @@ static inline gconstpointer
 gsk_gl_uniform_state_get_uniform_data (GskGLUniformState *state,
                                        guint              offset)
 {
-  return (gconstpointer)&state->uniform_data->data[offset];
+  return (gconstpointer)(state->values_buf + offset);
 }
 
 G_END_DECLS

@@ -269,6 +269,8 @@ gsk_gl_glyph_library_upload_glyph (GskGLGlyphLibrary     *self,
 
   gdk_gl_context_pop_debug_group (gdk_gl_context_get_current ());
 
+  GSK_GL_TEXTURE_LIBRARY (self)->driver->command_queue->n_uploads++;
+
   if (gdk_profiler_is_running ())
     {
       char message[64];

@@ -970,6 +970,7 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
   gdk_profiler_set_int_counter (self->metrics.n_binds, n_binds);
   gdk_profiler_set_int_counter (self->metrics.n_uniforms, n_uniforms);
   gdk_profiler_set_int_counter (self->metrics.n_fbos, n_fbos);
+  gdk_profiler_set_int_counter (self->metrics.n_uploads, self->n_uploads);
 
 #ifdef G_ENABLE_DEBUG
   {
@@ -1040,6 +1041,7 @@ gsk_gl_command_queue_end_frame (GskGLCommandQueue *self)
   self->batch_draws->len = 0;
   self->batch_uniforms->len = 0;
   self->batch_binds->len = 0;
+  self->n_uploads = 0;
   self->tail_batch_index = -1;
   self->in_frame = FALSE;
 }
@@ -1200,6 +1202,8 @@ gsk_gl_command_queue_upload_texture (GskGLCommandQueue *self,
       data_stride = cairo_image_surface_get_stride (surface);
     }
 
+  self->n_uploads++;
+
   bpp = gdk_memory_format_bytes_per_pixel (data_format);
 
   /* Swtich to texture0 as 2D. We'll restore it later. */
@@ -1245,6 +1249,7 @@ gsk_gl_command_queue_set_profiler (GskGLCommandQueue *self,
       self->metrics.n_binds = gdk_profiler_define_int_counter ("attachments", "Number of texture attachments");
       self->metrics.n_fbos = gdk_profiler_define_int_counter ("fbos", "Number of framebuffers attached");
       self->metrics.n_uniforms = gdk_profiler_define_int_counter ("uniforms", "Number of uniforms changed");
+      self->metrics.n_uploads = gdk_profiler_define_int_counter ("uploads", "Number of texture uploads");
     }
 #endif
 }

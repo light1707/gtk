@@ -243,7 +243,7 @@ struct _GskGLCommandQueue
    */
   int tail_batch_index;
 
-  /* Various GSK and GDK metrics */
+  /* Various GSK and GDK metric counter ids */
   struct {
     GQuark n_frames;
     GQuark cpu_time;
@@ -251,7 +251,11 @@ struct _GskGLCommandQueue
     guint n_binds;
     guint n_fbos;
     guint n_uniforms;
+    guint n_uploads;
   } metrics;
+
+  /* Counter for uploads on the frame */
+  guint n_uploads;
 
   /* If we're inside a begin/end_frame pair */
   guint in_frame : 1;

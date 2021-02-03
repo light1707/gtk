@@ -207,6 +207,8 @@ gsk_gl_icon_library_add (GskGLIconLibrary     *self,
   cairo_surface_destroy (surface);
   g_free (free_data);
 
+  GSK_GL_TEXTURE_LIBRARY (self)->driver->command_queue->n_uploads++;
+
   if (gdk_profiler_is_running ())
     {
       char message[64];

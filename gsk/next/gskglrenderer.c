@@ -181,9 +181,9 @@ get_render_region (GdkSurface   *surface,
 }
 
 static void
-gsk_gl_renderer_render (GskRenderer          *renderer,
-                        GskRenderNode        *root,
-                        const cairo_region_t *update_area)
+gsk_next_renderer_render (GskRenderer          *renderer,
+                          GskRenderNode        *root,
+                          const cairo_region_t *update_area)
 {
   GskNextRenderer *self = (GskNextRenderer *)renderer;
   cairo_region_t *render_region;
@@ -224,9 +224,9 @@ gsk_gl_renderer_render (GskRenderer          *renderer,
 }
 
 static GdkTexture *
-gsk_gl_renderer_render_texture (GskRenderer           *renderer,
-                                GskRenderNode         *root,
-                                const graphene_rect_t *viewport)
+gsk_next_renderer_render_texture (GskRenderer           *renderer,
+                                  GskRenderNode         *root,
+                                  const graphene_rect_t *viewport)
 {
   GskNextRenderer *self = (GskNextRenderer *)renderer;
   GskGLRenderTarget *render_target;
@@ -285,8 +285,8 @@ gsk_next_renderer_class_init (GskNextRendererClass *klass)
 
   renderer_class->realize = gsk_next_renderer_realize;
   renderer_class->unrealize = gsk_next_renderer_unrealize;
-  renderer_class->render = gsk_gl_renderer_render;
-  renderer_class->render_texture = gsk_gl_renderer_render_texture;
+  renderer_class->render = gsk_next_renderer_render;
+  renderer_class->render_texture = gsk_next_renderer_render_texture;
 }
 
 static void

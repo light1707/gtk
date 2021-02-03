@@ -43,8 +43,7 @@ GLuint       gsk_gl_buffer_submit (GskGLBuffer *buffer);
 
 static inline gpointer
 gsk_gl_buffer_advance (GskGLBuffer *buffer,
-                       guint        count,
-                       guint       *offset)
+                       guint        count)
 {
   gpointer ret;
   gsize to_alloc = count * buffer->element_size;
@@ -55,7 +54,6 @@ gsk_gl_buffer_advance (GskGLBuffer *buffer,
       buffer->buffer = g_realloc (buffer->buffer, buffer->buffer_len);
     }
 
-  *offset = buffer->count;
   ret = buffer->buffer + buffer->buffer_pos;
 
   buffer->buffer_pos += to_alloc;

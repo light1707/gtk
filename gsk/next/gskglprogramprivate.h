@@ -52,6 +52,9 @@ struct _GskGLProgram
   int texture_locations[4];
   int args_locations[8];
   int size_location;
+
+  /* Used to avoid comparing shared state */
+  guint last_shared_state;
 };
 
 GskGLProgram *gsk_gl_program_new         (GskNextDriver           *driver,

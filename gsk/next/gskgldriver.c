@@ -552,6 +552,41 @@ gsk_next_driver_end_frame (GskNextDriver *self)
   gsk_gl_texture_library_end_frame (GSK_GL_TEXTURE_LIBRARY (self->icons));
   gsk_gl_texture_library_end_frame (GSK_GL_TEXTURE_LIBRARY (self->glyphs));
 
+#if 0
+  g_print ("End Frame: textures=%u with_key=%u reverse=%u pool=%u:%u atlases=%u\n",
+           g_hash_table_size (self->textures),
+           g_hash_table_size (self->key_to_texture_id),
+           g_hash_table_size (self->texture_id_to_key),
+           self->texture_pool.by_width.length,
+           self->texture_pool.by_height.length,
+           self->atlases->len);
+#endif
+
+  self->in_frame = FALSE;
+}
+
+/**
+ * gsk_next_driver_after_frame:
+ * @self: a #GskNextDriver
+ *
+ * This function does post-frame cleanup operations.
+ *
+ * It differs from gsk_next_driver_end_frame() in that you should call it
+ * after you have requested the GL buffers swapped using
+ * gdk_draw_context_end_frame() on the target surface's context. This helps
+ * ensure that we do not block on destroying resources when we really just
+ * want to get the frame delivered.
+ */
+void
+gsk_next_driver_after_frame (GskNextDriver *self)
+{
+  g_return_if_fail (GSK_IS_NEXT_DRIVER (self));
+  g_return_if_fail (self->in_frame == FALSE);
+
+  /* Release any render targets (possibly adding them to
+   * self->autorelease_framebuffers) so we can release the FBOs immediately
+   * afterwards.
+   */
   while (self->render_targets->len > 0)
     {
       GskGLRenderTarget *render_target = g_ptr_array_index (self->render_targets, self->render_targets->len - 1);
@@ -563,6 +598,7 @@ gsk_next_driver_end_frame (GskNextDriver *self)
       self->render_targets->len--;
     }
 
+  /* Now that we have collected render targets, release all the FBOs */
   if (self->autorelease_framebuffers->len > 0)
     {
       glDeleteFramebuffers (self->autorelease_framebuffers->len,
@@ -570,19 +606,8 @@ gsk_next_driver_end_frame (GskNextDriver *self)
       self->autorelease_framebuffers->len = 0;
     }
 
-#if 0
-  g_print ("End Frame: textures=%u with_key=%u reverse=%u pool=%u:%u atlases=%u\n",
-           g_hash_table_size (self->textures),
-           g_hash_table_size (self->key_to_texture_id),
-           g_hash_table_size (self->texture_id_to_key),
-           self->texture_pool.by_width.length,
-           self->texture_pool.by_height.length,
-           self->atlases->len);
-#endif
-
+  /* Release any cached textures we used during the frame */
   gsk_gl_texture_pool_clear (&self->texture_pool);
-
-  self->in_frame = FALSE;
 
   /* Reset command queue to our shared queue incase we have operations
    * that need to be processed outside of a frame (such as callbacks

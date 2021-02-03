@@ -221,6 +221,8 @@ gsk_next_renderer_render (GskRenderer          *renderer,
   gdk_draw_context_end_frame (GDK_DRAW_CONTEXT (self->context));
 
   cairo_region_destroy (render_region);
+
+  gsk_next_driver_after_frame (self->driver);
 }
 
 static GdkTexture *
@@ -258,6 +260,8 @@ gsk_next_renderer_render_texture (GskRenderer           *renderer,
       texture = gsk_next_driver_create_gdk_texture (self->driver, texture_id);
       gsk_next_driver_end_frame (self->driver);
       gsk_gl_render_job_free (job);
+
+      gsk_next_driver_after_frame (self->driver);
     }
 
   return g_steal_pointer (&texture);

@@ -21,8 +21,9 @@
 #ifndef __GSK_GL_DRIVER_PRIVATE_H__
 #define __GSK_GL_DRIVER_PRIVATE_H__
 
-#include "gskgltypesprivate.h"
+#include <gdk/gdkgltextureprivate.h>
 
+#include "gskgltypesprivate.h"
 #include "gskgltexturepoolprivate.h"
 
 G_BEGIN_DECLS
@@ -141,8 +142,6 @@ void               gsk_next_driver_end_frame             (GskNextDriver        *
 void               gsk_next_driver_after_frame           (GskNextDriver        *self);
 GdkTexture        *gsk_next_driver_create_gdk_texture    (GskNextDriver        *self,
                                                           guint                 texture_id);
-guint              gsk_next_driver_lookup_texture        (GskNextDriver        *self,
-                                                          const GskTextureKey  *key);
 void               gsk_next_driver_cache_texture         (GskNextDriver        *self,
                                                           const GskTextureKey  *key,
                                                           guint                 texture_id);
@@ -166,7 +165,7 @@ void               gsk_next_driver_release_texture_by_id (GskNextDriver        *
                                                           guint                 texture_id);
 GskGLTexture      *gsk_next_driver_mark_texture_permanent(GskNextDriver        *self,
                                                           guint                 texture_id);
-void               gsk_next_driver_slice_texture         (GskNextDriver        *self,
+void               gsk_next_driver_add_texture_slices    (GskNextDriver        *self,
                                                           GdkTexture           *texture,
                                                           GskGLTextureSlice   **out_slices,
                                                           guint                *out_n_slices);
@@ -182,6 +181,54 @@ gsk_next_driver_get_texture_by_id (GskNextDriver *self,
                                    guint          texture_id)
 {
   return g_hash_table_lookup (self->textures, GUINT_TO_POINTER (texture_id));
+}
+
+/**
+ * gsk_next_driver_lookup_texture:
+ * @self: a #GskNextDriver
+ * @key: the key for the texture
+ *
+ * Looks up a texture in the texture cache by @key.
+ *
+ * If the texture could not be found, then zero is returned.
+ *
+ * Returns: a positive integer if the texture was found; otherwise 0.
+ */
+static inline guint
+gsk_next_driver_lookup_texture (GskNextDriver       *self,
+                                const GskTextureKey *key)
+{
+  gpointer id;
+
+  if (g_hash_table_lookup_extended (self->key_to_texture_id, key, NULL, &id))
+    {
+      GskGLTexture *texture = g_hash_table_lookup (self->textures, id);
+
+      if (texture != NULL)
+        texture->last_used_in_frame = self->current_frame_id;
+
+      return GPOINTER_TO_UINT (id);
+    }
+
+  return 0;
+}
+
+static inline void
+gsk_next_driver_slice_texture (GskNextDriver      *self,
+                               GdkTexture         *texture,
+                               GskGLTextureSlice **out_slices,
+                               guint              *out_n_slices)
+{
+  GskGLTexture *t;
+
+  if ((t = gdk_texture_get_render_data (texture, self)))
+    {
+      *out_slices = t->slices;
+      *out_n_slices = t->n_slices;
+      return;
+    }
+
+  gsk_next_driver_add_texture_slices (self, texture, out_slices, out_n_slices);
 }
 
 G_END_DECLS

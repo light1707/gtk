@@ -24,7 +24,6 @@
 #include "config.h"
 
 #include <gdk/gdkglcontextprivate.h>
-#include <gdk/gdkgltextureprivate.h>
 #include <gdk/gdktextureprivate.h>
 #include <gsk/gskdebugprivate.h>
 #include <gsk/gskglshaderprivate.h>
@@ -626,39 +625,6 @@ gsk_next_driver_get_context (GskNextDriver *self)
 }
 
 /**
- * gsk_next_driver_lookup_texture:
- * @self: a #GskNextDriver
- * @key: the key for the texture
- *
- * Looks up a texture in the texture cache by @key.
- *
- * If the texture could not be found, then zero is returned.
- *
- * Returns: a positive integer if the texture was found; otherwise 0.
- */
-guint
-gsk_next_driver_lookup_texture (GskNextDriver       *self,
-                                const GskTextureKey *key)
-{
-  gpointer id;
-
-  g_return_val_if_fail (GSK_IS_NEXT_DRIVER (self), FALSE);
-  g_return_val_if_fail (key != NULL, FALSE);
-
-  if (g_hash_table_lookup_extended (self->key_to_texture_id, key, NULL, &id))
-    {
-      GskGLTexture *texture = g_hash_table_lookup (self->textures, id);
-
-      if (texture != NULL)
-        texture->last_used_in_frame = self->current_frame_id;
-
-      return GPOINTER_TO_UINT (id);
-    }
-
-  return 0;
-}
-
-/**
  * gsk_next_driver_cache_texture:
  * @self: a #GskNextDriver
  * @key: the key for the texture
@@ -679,10 +645,10 @@ gsk_next_driver_cache_texture (GskNextDriver       *self,
 {
   GskTextureKey *k;
 
-  g_return_if_fail (GSK_IS_NEXT_DRIVER (self));
-  g_return_if_fail (key != NULL);
-  g_return_if_fail (texture_id > 0);
-  g_return_if_fail (g_hash_table_contains (self->textures, GUINT_TO_POINTER (texture_id)));
+  g_assert (GSK_IS_NEXT_DRIVER (self));
+  g_assert (key != NULL);
+  g_assert (texture_id > 0);
+  g_assert (g_hash_table_contains (self->textures, GUINT_TO_POINTER (texture_id)));
 
   k = g_memdup (key, sizeof *key);
 
@@ -878,7 +844,7 @@ gsk_next_driver_acquire_texture (GskNextDriver *self,
 {
   GskGLTexture *texture;
 
-  g_return_val_if_fail (GSK_IS_NEXT_DRIVER (self), NULL);
+  g_assert (GSK_IS_NEXT_DRIVER (self));
 
   texture = gsk_gl_texture_pool_get (&self->texture_pool,
                                      width, height,
@@ -908,8 +874,8 @@ gsk_next_driver_release_texture (GskNextDriver *self,
 {
   guint texture_id;
 
-  g_return_if_fail (GSK_IS_NEXT_DRIVER (self));
-  g_return_if_fail (texture != NULL);
+  g_assert (GSK_IS_NEXT_DRIVER (self));
+  g_assert (texture != NULL);
 
   texture_id = texture->texture_id;
 
@@ -1205,10 +1171,10 @@ gsk_next_driver_create_command_queue (GskNextDriver *self,
 }
 
 void
-gsk_next_driver_slice_texture (GskNextDriver      *self,
-                               GdkTexture         *texture,
-                               GskGLTextureSlice **out_slices,
-                               guint              *out_n_slices)
+gsk_next_driver_add_texture_slices (GskNextDriver      *self,
+                                    GdkTexture         *texture,
+                                    GskGLTextureSlice **out_slices,
+                                    guint              *out_n_slices)
 {
   int max_texture_size;
   GskGLTextureSlice *slices;
@@ -1220,10 +1186,10 @@ gsk_next_driver_slice_texture (GskNextDriver      *self,
   int tex_height;
   int x = 0, y = 0;
 
-  g_return_if_fail (GSK_IS_NEXT_DRIVER (self));
-  g_return_if_fail (GDK_IS_TEXTURE (texture));
-  g_return_if_fail (out_slices != NULL);
-  g_return_if_fail (out_n_slices != NULL);
+  g_assert (GSK_IS_NEXT_DRIVER (self));
+  g_assert (GDK_IS_TEXTURE (texture));
+  g_assert (out_slices != NULL);
+  g_assert (out_n_slices != NULL);
 
   /* XXX: Too much? */
   max_texture_size = self->command_queue->max_texture_size / 4;

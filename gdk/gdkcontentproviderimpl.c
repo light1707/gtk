@@ -426,7 +426,7 @@ gdk_content_provider_new_union (GdkContentProvider **providers,
   result = g_object_new (GDK_TYPE_CONTENT_PROVIDER_UNION, NULL);
 
   result->n_providers = n_providers;
-  result->providers = g_memdup (providers, sizeof (GdkContentProvider *) * n_providers);
+  result->providers = g_memdup2 (providers, sizeof (GdkContentProvider *) * n_providers);
 
   for (i = 0; i < n_providers; i++)
     {

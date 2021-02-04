@@ -70,8 +70,8 @@ struct _GskGLTexture
   /* The actual GL texture identifier in some shared context */
   guint texture_id;
 
-  float width;
-  float height;
+  int width;
+  int height;
   int min_filter;
   int mag_filter;
 
@@ -82,8 +82,8 @@ struct _GskGLTexture
 void                         gsk_gl_texture_pool_init      (GskGLTexturePool *self);
 void                         gsk_gl_texture_pool_clear     (GskGLTexturePool *self);
 GskGLTexture                *gsk_gl_texture_pool_get       (GskGLTexturePool *self,
-                                                            float             width,
-                                                            float             height,
+                                                            int               width,
+                                                            int               height,
                                                             int               min_filter,
                                                             int               mag_filter,
                                                             gboolean          always_create);

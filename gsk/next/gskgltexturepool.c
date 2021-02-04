@@ -141,8 +141,8 @@ gsk_gl_texture_pool_put (GskGLTexturePool *self,
 
 GskGLTexture *
 gsk_gl_texture_pool_get (GskGLTexturePool *self,
-                         float             width,
-                         float             height,
+                         int               width,
+                         int               height,
                          int               min_filter,
                          int               mag_filter,
                          gboolean          always_create)

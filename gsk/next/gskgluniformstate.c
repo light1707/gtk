@@ -607,7 +607,7 @@ gsk_gl_uniform_state_set_matrix (GskGLUniformState       *state,
 
   if ((u = get_uniform (state, program, GSK_GL_UNIFORM_FORMAT_MATRIX, 1, location, &info)))
     {
-      if (!info->initial && graphene_matrix_equal_fast (u, matrix))
+      if (!info->initial && memcmp (u, matrix, sizeof *u) == 0)
         return;
 
       REPLACE_UNIFORM (info, u, GSK_GL_UNIFORM_FORMAT_MATRIX, 1);

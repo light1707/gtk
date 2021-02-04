@@ -3472,8 +3472,7 @@ tablet_tool_handle_proximity_out (void                      *data,
 static double *
 tablet_copy_axes (GdkWaylandTabletData *tablet)
 {
-  return g_memdup (tablet->axes,
-                   sizeof (double) * GDK_AXIS_LAST);
+  return g_memdup2 (tablet->axes, sizeof (double) * GDK_AXIS_LAST);
 }
 
 static void

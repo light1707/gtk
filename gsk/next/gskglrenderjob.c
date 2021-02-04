@@ -2623,8 +2623,8 @@ gsk_gl_render_job_visit_text_node (GskGLRenderJob *job,
       tx2 = glyph->entry.area.x2;
       ty2 = glyph->entry.area.y2;
 
-      glyph_x = floor (x + cx + 0.125) + glyph->ink_rect.x;
-      glyph_y = floor (y + cy + 0.125) + glyph->ink_rect.y;
+      glyph_x = floorf (x + cx + 0.125) + glyph->ink_rect.x;
+      glyph_y = floorf (y + cy + 0.125) + glyph->ink_rect.y;
       glyph_x2 = glyph_x + glyph->ink_rect.width;
       glyph_y2 = glyph_y + glyph->ink_rect.height;
 

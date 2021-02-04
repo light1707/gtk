@@ -279,6 +279,8 @@ gsk_next_driver_dispose (GObject *object)
       self->autorelease_framebuffers->len = 0;
     }
 
+  gsk_gl_texture_pool_clear (&self->texture_pool);
+
   g_assert (!self->textures || g_hash_table_size (self->textures) == 0);
   g_assert (!self->texture_id_to_key || g_hash_table_size (self->texture_id_to_key) == 0);
   g_assert (!self->key_to_texture_id|| g_hash_table_size (self->key_to_texture_id) == 0);
@@ -565,19 +567,16 @@ gsk_next_driver_end_frame (GskNextDriver *self)
 }
 
 /**
- * gsk_next_driver_after_frame:
+ * gsk_next_driver_before_frame:
  * @self: a #GskNextDriver
  *
  * This function does post-frame cleanup operations.
  *
- * It differs from gsk_next_driver_end_frame() in that you should call it
- * after you have requested the GL buffers swapped using
- * gdk_draw_context_end_frame() on the target surface's context. This helps
- * ensure that we do not block on destroying resources when we really just
- * want to get the frame delivered.
+ * To reduce the chances of blocking on the driver it is performed
+ * at the beginning of the following frame.
  */
 void
-gsk_next_driver_after_frame (GskNextDriver *self)
+gsk_next_driver_before_frame (GskNextDriver *self)
 {
   g_return_if_fail (GSK_IS_NEXT_DRIVER (self));
   g_return_if_fail (self->in_frame == FALSE);

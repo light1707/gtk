@@ -628,7 +628,6 @@ gsk_gl_command_queue_delete_program (GskGLCommandQueue *self,
 {
   g_assert (GSK_IS_GL_COMMAND_QUEUE (self));
 
-  gsk_gl_command_queue_make_current (self);
   glDeleteProgram (program);
   gsk_gl_uniform_state_clear_program (self->uniforms, program);
 }
@@ -803,12 +802,12 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
   if (self->batches->len == 0)
     return;
 
+  gsk_gl_command_queue_make_current (self);
+
 #ifdef G_ENABLE_DEBUG
   gsk_gl_profiler_begin_gpu_region (self->gl_profiler);
   gsk_profiler_timer_begin (self->profiler, self->metrics.cpu_time);
 #endif
-
-  gsk_gl_command_queue_make_current (self);
 
   glEnable (GL_DEPTH_TEST);
   glDepthFunc (GL_LEQUAL);
@@ -1004,6 +1003,8 @@ gsk_gl_command_queue_begin_frame (GskGLCommandQueue *self)
   g_assert (GSK_IS_GL_COMMAND_QUEUE (self));
   g_assert (self->batches->len == 0);
 
+  gsk_gl_command_queue_make_current (self);
+
   self->tail_batch_index = -1;
   self->in_frame = TRUE;
 }
@@ -1027,7 +1028,6 @@ gsk_gl_command_queue_end_frame (GskGLCommandQueue *self)
   g_assert (self->saved_state->len == 0);
 
   gsk_gl_command_queue_make_current (self);
-
   gsk_gl_uniform_state_end_frame (self->uniforms);
 
   /* Reset attachments so we don't hold on to any textures
@@ -1120,8 +1120,6 @@ gsk_gl_command_queue_create_texture (GskGLCommandQueue *self,
   if (width > self->max_texture_size || height > self->max_texture_size)
     return -1;
 
-  gsk_gl_command_queue_make_current (self);
-
   glGenTextures (1, &texture_id);
 
   glActiveTexture (GL_TEXTURE0);
@@ -1150,8 +1148,6 @@ gsk_gl_command_queue_create_framebuffer (GskGLCommandQueue *self)
   GLuint fbo_id;
 
   g_return_val_if_fail (GSK_IS_GL_COMMAND_QUEUE (self), -1);
-
-  gsk_gl_command_queue_make_current (self);
 
   glGenFramebuffers (1, &fbo_id);
 

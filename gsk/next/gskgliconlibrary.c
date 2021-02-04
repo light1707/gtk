@@ -77,7 +77,6 @@ gsk_gl_icon_library_add (GskGLIconLibrary     *self,
   G_GNUC_UNUSED gint64 start_time = GDK_PROFILER_CURRENT_TIME;
   cairo_surface_t *surface;
   GskGLIconData *icon_data;
-  GdkGLContext *context;
   guint8 *pixel_data;
   guint8 *surface_data;
   guint8 *free_data = NULL;
@@ -92,8 +91,6 @@ gsk_gl_icon_library_add (GskGLIconLibrary     *self,
   g_return_if_fail (GSK_IS_GL_ICON_LIBRARY (self));
   g_return_if_fail (GDK_IS_TEXTURE (key));
   g_return_if_fail (out_value != NULL);
-
-  context = GSK_GL_TEXTURE_LIBRARY (self)->driver->command_queue->context;
 
   width = key->width;
   height = key->height;
@@ -129,8 +126,6 @@ gsk_gl_icon_library_add (GskGLIconLibrary     *self,
     }
 
   texture_id = GSK_GL_TEXTURE_ATLAS_ENTRY_TEXTURE (icon_data);
-
-  gdk_gl_context_make_current (context);
 
   glBindTexture (GL_TEXTURE_2D, texture_id);
 

@@ -3067,8 +3067,6 @@ gsk_gl_render_job_upload_texture (GskGLRenderJob       *job,
       offscreen->texture_id = gsk_next_driver_load_texture (job->driver, texture, GL_LINEAR, GL_LINEAR);
       init_full_texture_region (offscreen);
     }
-
-  gsk_gl_command_queue_make_current (job->command_queue);
 }
 
 static void

@@ -518,7 +518,6 @@ gsk_next_driver_begin_frame (GskNextDriver     *self,
 
   g_set_object (&self->command_queue, command_queue);
 
-  gsk_gl_command_queue_make_current (self->command_queue);
   gsk_gl_command_queue_begin_frame (self->command_queue);
 
   gsk_gl_texture_library_begin_frame (GSK_GL_TEXTURE_LIBRARY (self->icons));

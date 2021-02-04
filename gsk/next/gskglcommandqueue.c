@@ -1075,8 +1075,6 @@ gsk_gl_command_queue_create_render_target (GskGLCommandQueue *self,
   g_assert (out_fbo_id != NULL);
   g_assert (out_texture_id != NULL);
 
-  gsk_gl_command_queue_save (self);
-
   texture_id = gsk_gl_command_queue_create_texture (self,
                                                     width, height,
                                                     min_filter, mag_filter);
@@ -1085,7 +1083,6 @@ gsk_gl_command_queue_create_render_target (GskGLCommandQueue *self,
     {
       *out_fbo_id = 0;
       *out_texture_id = 0;
-      gsk_gl_command_queue_restore (self);
       return FALSE;
     }
 
@@ -1094,8 +1091,6 @@ gsk_gl_command_queue_create_render_target (GskGLCommandQueue *self,
   glBindFramebuffer (GL_FRAMEBUFFER, fbo_id);
   glFramebufferTexture2D (GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_id, 0);
   g_assert_cmphex (glCheckFramebufferStatus (GL_FRAMEBUFFER), ==, GL_FRAMEBUFFER_COMPLETE);
-
-  gsk_gl_command_queue_restore (self);
 
   *out_fbo_id = fbo_id;
   *out_texture_id = texture_id;

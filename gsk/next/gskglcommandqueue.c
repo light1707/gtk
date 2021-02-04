@@ -374,23 +374,15 @@ gsk_gl_command_queue_uniform_snapshot_cb (const GskGLUniformInfo *info,
                                           gpointer                user_data)
 {
   GArray *uniforms = user_data;
-  GskGLCommandUniform *uniform;
-  guint index;
-
-  g_assert (info != NULL);
-  g_assert (info->initial == FALSE);
-  g_assert (info->changed == TRUE);
 
   /* To avoid calling g_array_set_size() a bunch in this callback,
    * we've already "set_size()" before the callback was called and
    * so we can instead be certain the size is large enough and use
    * ++ on length directly.
    */
-  index = uniforms->len++;
-
-  uniform = &g_array_index (uniforms, GskGLCommandUniform, index);
-  uniform->location = location;
-  uniform->info = *info;
+  g_array_index (uniforms, GskGLCommandUniform, uniforms->len).location = location;
+  g_array_index (uniforms, GskGLCommandUniform, uniforms->len).info = *info;
+  uniforms->len++;
 }
 
 void
@@ -441,7 +433,7 @@ gsk_gl_command_queue_end_draw (GskGLCommandQueue *self)
                                      batch->any.program,
                                      gsk_gl_command_queue_uniform_snapshot_cb,
                                      self->batch_uniforms);
-      batch->draw.uniform_count = self->batch_uniforms->len - batch->draw.uniform_offset;
+      batch->draw.uniform_count = n_changed;
     }
   else
     {

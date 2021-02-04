@@ -228,29 +228,6 @@ gsk_gl_command_queue_capture_png (GskGLCommandQueue *self,
 }
 
 static void
-gsk_gl_command_queue_save (GskGLCommandQueue *self)
-{
-  g_assert (GSK_IS_GL_COMMAND_QUEUE (self));
-
-  g_ptr_array_add (self->saved_state,
-                   gsk_gl_attachment_state_save (self->attachments));
-}
-
-static void
-gsk_gl_command_queue_restore (GskGLCommandQueue *self)
-{
-  GskGLAttachmentState *saved;
-
-  g_assert (GSK_IS_GL_COMMAND_QUEUE (self));
-  g_assert (self->saved_state->len > 0);
-
-  saved = g_ptr_array_steal_index (self->saved_state,
-                                   self->saved_state->len - 1);
-
-  gsk_gl_attachment_state_restore (saved);
-}
-
-static void
 gsk_gl_command_queue_dispose (GObject *object)
 {
   GskGLCommandQueue *self = (GskGLCommandQueue *)object;
@@ -267,7 +244,6 @@ gsk_gl_command_queue_dispose (GObject *object)
   g_clear_pointer (&self->batch_draws, g_array_unref);
   g_clear_pointer (&self->batch_binds, g_array_unref);
   g_clear_pointer (&self->batch_uniforms, g_array_unref);
-  g_clear_pointer (&self->saved_state, g_ptr_array_unref);
 
   G_OBJECT_CLASS (gsk_gl_command_queue_parent_class)->dispose (object);
 }
@@ -290,7 +266,6 @@ gsk_gl_command_queue_init (GskGLCommandQueue *self)
   self->batch_binds = g_array_new (FALSE, FALSE, sizeof (GskGLCommandBind));
   self->batch_uniforms = g_array_new (FALSE, FALSE, sizeof (GskGLCommandUniform));
   self->vertices = gsk_gl_buffer_new (GL_ARRAY_BUFFER, sizeof (GskGLDrawVertex));
-  self->saved_state = g_ptr_array_new_with_free_func ((GDestroyNotify)gsk_gl_attachment_state_unref);
   self->debug_groups = g_string_chunk_new (4096);
 }
 
@@ -1025,7 +1000,6 @@ void
 gsk_gl_command_queue_end_frame (GskGLCommandQueue *self)
 {
   g_assert (GSK_IS_GL_COMMAND_QUEUE (self));
-  g_assert (self->saved_state->len == 0);
 
   gsk_gl_command_queue_make_current (self);
   gsk_gl_uniform_state_end_frame (self->uniforms);

@@ -221,13 +221,6 @@ struct _GskGLCommandQueue
    */
   GArray *batch_uniforms;
 
-  /* Sometimes we want to save attachment state so that operations we do
-   * cannot affect anything that is known to the command queue. We call
-   * gsk_gl_command_queue_save()/restore() which stashes attachment state
-   * into this pointer array.
-   */
-  GPtrArray *saved_state;
-
   /* String storage for debug groups */
   GStringChunk *debug_groups;
 

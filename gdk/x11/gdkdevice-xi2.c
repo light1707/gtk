@@ -760,7 +760,7 @@ gdk_x11_device_xi2_store_axes (GdkX11DeviceXI2 *device,
   g_free (device->last_axes);
 
   if (axes && n_axes)
-    device->last_axes = g_memdup (axes, sizeof (double) * n_axes);
+    device->last_axes = g_memdup2 (axes, sizeof (double) * n_axes);
   else
     device->last_axes = NULL;
 }

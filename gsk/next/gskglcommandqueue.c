@@ -1069,11 +1069,11 @@ gsk_gl_command_queue_create_render_target (GskGLCommandQueue *self,
   GLuint fbo_id = 0;
   GLint texture_id;
 
-  g_return_val_if_fail (GSK_IS_GL_COMMAND_QUEUE (self), FALSE);
-  g_return_val_if_fail (width > 0, FALSE);
-  g_return_val_if_fail (height > 0, FALSE);
-  g_return_val_if_fail (out_fbo_id != NULL, FALSE);
-  g_return_val_if_fail (out_texture_id != NULL, FALSE);
+  g_assert (GSK_IS_GL_COMMAND_QUEUE (self));
+  g_assert (width > 0);
+  g_assert (height > 0);
+  g_assert (out_fbo_id != NULL);
+  g_assert (out_texture_id != NULL);
 
   gsk_gl_command_queue_save (self);
 
@@ -1112,7 +1112,7 @@ gsk_gl_command_queue_create_texture (GskGLCommandQueue *self,
 {
   GLuint texture_id = 0;
 
-  g_return_val_if_fail (GSK_IS_GL_COMMAND_QUEUE (self), -1);
+  g_assert (GSK_IS_GL_COMMAND_QUEUE (self));
 
   if G_UNLIKELY (self->max_texture_size == -1)
     glGetIntegerv (GL_MAX_TEXTURE_SIZE, &self->max_texture_size);
@@ -1147,7 +1147,7 @@ gsk_gl_command_queue_create_framebuffer (GskGLCommandQueue *self)
 {
   GLuint fbo_id;
 
-  g_return_val_if_fail (GSK_IS_GL_COMMAND_QUEUE (self), -1);
+  g_assert (GSK_IS_GL_COMMAND_QUEUE (self));
 
   glGenFramebuffers (1, &fbo_id);
 
@@ -1172,12 +1172,12 @@ gsk_gl_command_queue_upload_texture (GskGLCommandQueue *self,
   gsize bpp;
   int texture_id;
 
-  g_return_val_if_fail (GSK_IS_GL_COMMAND_QUEUE (self), 0);
-  g_return_val_if_fail (!GDK_IS_GL_TEXTURE (texture), 0);
-  g_return_val_if_fail (x_offset + width <= gdk_texture_get_width (texture), 0);
-  g_return_val_if_fail (y_offset + height <= gdk_texture_get_height (texture), 0);
-  g_return_val_if_fail (min_filter == GL_LINEAR || min_filter == GL_NEAREST, 0);
-  g_return_val_if_fail (mag_filter == GL_LINEAR || min_filter == GL_NEAREST, 0);
+  g_assert (GSK_IS_GL_COMMAND_QUEUE (self));
+  g_assert (!GDK_IS_GL_TEXTURE (texture));
+  g_assert (x_offset + width <= gdk_texture_get_width (texture));
+  g_assert (y_offset + height <= gdk_texture_get_height (texture));
+  g_assert (min_filter == GL_LINEAR || min_filter == GL_NEAREST);
+  g_assert (mag_filter == GL_LINEAR || min_filter == GL_NEAREST);
 
   if (width > self->max_texture_size || height > self->max_texture_size)
     {

@@ -150,9 +150,9 @@ gsk_gl_shadow_library_insert (GskGLShadowLibrary   *self,
 {
   Shadow *shadow;
 
-  g_return_if_fail (GSK_IS_GL_SHADOW_LIBRARY (self));
-  g_return_if_fail (outline != NULL);
-  g_return_if_fail (texture_id != 0);
+  g_assert (GSK_IS_GL_SHADOW_LIBRARY (self));
+  g_assert (outline != NULL);
+  g_assert (texture_id != 0);
 
   gsk_next_driver_mark_texture_permanent (self->driver, texture_id);
 
@@ -172,8 +172,8 @@ gsk_gl_shadow_library_lookup (GskGLShadowLibrary   *self,
 {
   Shadow *ret = NULL;
 
-  g_return_val_if_fail (GSK_IS_GL_SHADOW_LIBRARY (self), 0);
-  g_return_val_if_fail (outline != NULL, 0);
+  g_assert (GSK_IS_GL_SHADOW_LIBRARY (self));
+  g_assert (outline != NULL);
 
   /* Ensure GskRoundedRect  is 12 packed floats without padding
    * so that we can use memcmp instead of float comparisons.

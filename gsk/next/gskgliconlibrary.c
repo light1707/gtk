@@ -88,9 +88,9 @@ gsk_gl_icon_library_add (GskGLIconLibrary     *self,
   int height;
   guint texture_id;
 
-  g_return_if_fail (GSK_IS_GL_ICON_LIBRARY (self));
-  g_return_if_fail (GDK_IS_TEXTURE (key));
-  g_return_if_fail (out_value != NULL);
+  g_assert (GSK_IS_GL_ICON_LIBRARY (self));
+  g_assert (GDK_IS_TEXTURE (key));
+  g_assert (out_value != NULL);
 
   width = key->width;
   height = key->height;

@@ -32,10 +32,10 @@ gsk_gl_texture_free (GskGLTexture *texture)
 {
   if (texture != NULL)
     {
-      g_return_if_fail (texture->width_link.prev == NULL);
-      g_return_if_fail (texture->width_link.next == NULL);
-      g_return_if_fail (texture->height_link.prev == NULL);
-      g_return_if_fail (texture->height_link.next == NULL);
+      g_assert (texture->width_link.prev == NULL);
+      g_assert (texture->width_link.next == NULL);
+      g_assert (texture->height_link.prev == NULL);
+      g_assert (texture->height_link.next == NULL);
 
       if (texture->user)
         g_clear_pointer (&texture->user, gdk_texture_clear_render_data);
@@ -88,15 +88,15 @@ gsk_gl_texture_pool_put (GskGLTexturePool *self,
 {
   GList *sibling;
 
-  g_return_if_fail (self != NULL);
-  g_return_if_fail (texture != NULL);
-  g_return_if_fail (texture->user == NULL);
-  g_return_if_fail (texture->width_link.prev == NULL);
-  g_return_if_fail (texture->width_link.next == NULL);
-  g_return_if_fail (texture->width_link.data == texture);
-  g_return_if_fail (texture->height_link.prev == NULL);
-  g_return_if_fail (texture->height_link.next == NULL);
-  g_return_if_fail (texture->height_link.data == texture);
+  g_assert (self != NULL);
+  g_assert (texture != NULL);
+  g_assert (texture->user == NULL);
+  g_assert (texture->width_link.prev == NULL);
+  g_assert (texture->width_link.next == NULL);
+  g_assert (texture->width_link.data == texture);
+  g_assert (texture->height_link.prev == NULL);
+  g_assert (texture->height_link.next == NULL);
+  g_assert (texture->height_link.data == texture);
 
   if (texture->permanent)
     {
@@ -148,8 +148,6 @@ gsk_gl_texture_pool_get (GskGLTexturePool *self,
                          gboolean          always_create)
 {
   GskGLTexture *texture;
-
-  g_return_val_if_fail (self != NULL, NULL);
 
   if (always_create)
     goto create_texture;
@@ -250,8 +248,8 @@ gsk_gl_texture_get_nine_slice (GskGLTexture         *texture,
                                const GskRoundedRect *outline,
                                float                 extra_pixels)
 {
-  g_return_val_if_fail (texture != NULL, NULL);
-  g_return_val_if_fail (outline != NULL, NULL);
+  g_assert (texture != NULL);
+  g_assert (outline != NULL);
 
   if G_UNLIKELY (texture->nine_slice == NULL)
     {

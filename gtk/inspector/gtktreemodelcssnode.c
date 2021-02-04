@@ -401,17 +401,22 @@ gtk_tree_model_css_node_newv (GtkTreeModelCssNodeGetFunc  get_func,
 {
   GtkTreeModelCssNode *result;
   GtkTreeModelCssNodePrivate *priv;
+  gsize columns_size;
 
   g_return_val_if_fail (get_func != NULL, NULL);
   g_return_val_if_fail (n_columns > 0, NULL);
+  g_return_val_if_fail (n_columns <= G_MAXSIZE / sizeof (GType), NULL);
   g_return_val_if_fail (types != NULL, NULL);
 
   result = g_object_new (GTK_TYPE_TREE_MODEL_CSS_NODE, NULL);
+
   priv = result->priv;
+
+  columns_size = n_columns * sizeof (GType);
 
   priv->get_func = get_func;
   priv->n_columns = n_columns;
-  priv->column_types = g_memdup (types, sizeof (GType) * n_columns);
+  priv->column_types = g_memdup2 (types, columns_size);
 
   return GTK_TREE_MODEL (result);
 }

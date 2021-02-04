@@ -1610,7 +1610,7 @@ create_subparser (GObject       *object,
   subparser->child = child;
   subparser->tagname = g_strdup (element_name);
   subparser->start = element_name;
-  subparser->parser = g_memdup (parser, sizeof (GtkBuildableParser));
+  subparser->parser = g_memdup2 (parser, sizeof (GtkBuildableParser));
   subparser->data = user_data;
 
   return subparser;

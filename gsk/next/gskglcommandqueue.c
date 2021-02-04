@@ -755,6 +755,7 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
                               guint                 scale_factor,
                               const cairo_region_t *scissor)
 {
+  G_GNUC_UNUSED guint count = 0;
   gboolean has_scissor = scissor != NULL;
   gboolean scissor_state = -1;
   graphene_rect_t scissor_test;
@@ -764,7 +765,6 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
   guint program = 0;
   guint16 width = 0;
   guint16 height = 0;
-  guint count = 0;
   guint n_binds = 0;
   guint n_fbos = 0;
   guint n_uniforms = 0;

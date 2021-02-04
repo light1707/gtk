@@ -101,6 +101,15 @@ rounded_rect_equal (const GskRoundedRect *r1,
   return memcmp (r1, r2, sizeof *r1) == 0;
 }
 
+static void
+clear_program_info (gpointer data)
+{
+  GskGLUniformProgram *program_info = data;
+
+  g_clear_pointer (&program_info->uniform_info, g_array_unref);
+  g_clear_pointer (&program_info->changed, g_array_unref);
+}
+
 GskGLUniformState *
 gsk_gl_uniform_state_new (void)
 {
@@ -111,6 +120,8 @@ gsk_gl_uniform_state_new (void)
   state->values_len = 4096;
   state->values_pos = 0;
   state->values_buf = g_malloc (4096);
+
+  g_array_set_clear_func (state->program_info, clear_program_info);
 
   return g_steal_pointer (&state);
 }
@@ -139,16 +150,19 @@ gsk_gl_uniform_state_unref (GskGLUniformState *state)
 static inline void
 program_changed (GskGLUniformState *state,
                  GskGLUniformInfo  *info,
-                 guint              program)
+                 guint              program,
+                 guint              location)
 {
   if (info->changed == FALSE)
     {
+      const GskGLUniformProgram *program_info = &g_array_index (state->program_info, GskGLUniformProgram, program);
+
       g_assert (program < state->program_info->len);
 
       info->changed = TRUE;
       info->initial = FALSE;
 
-      g_array_index (state->program_info, GskGLUniformProgram, program).n_changed++;
+      g_array_append_val (program_info->changed, location);
     }
 }
 
@@ -164,7 +178,8 @@ gsk_gl_uniform_state_clear_program (GskGLUniformState *state,
     return;
 
   program_info = &g_array_index (state->program_info, GskGLUniformProgram, program);
-  program_info->n_changed = 0;
+
+  g_clear_pointer (&program_info->changed, g_array_unref);
   g_clear_pointer (&program_info->uniform_info, g_array_unref);
 }
 
@@ -275,7 +290,7 @@ setup_info:
 
       program_info = &g_array_index (state->program_info, GskGLUniformProgram, program);
       program_info->uniform_info = g_array_new (FALSE, TRUE, sizeof (GskGLUniformInfo));
-      program_info->n_changed = 0;
+      program_info->changed = g_array_new (FALSE, FALSE, sizeof (guint));
     }
 
   g_assert (program_info != NULL);
@@ -325,7 +340,7 @@ gsk_gl_uniform_state_set1f (GskGLUniformState *state,
         {
           REPLACE_UNIFORM (info, u, GSK_GL_UNIFORM_FORMAT_1F, 1);
           u->v0 = value0;
-          program_changed (state, info, program);
+          program_changed (state, info, program, location);
         }
     }
 }
@@ -350,7 +365,7 @@ gsk_gl_uniform_state_set2f (GskGLUniformState *state,
           REPLACE_UNIFORM (info, u, GSK_GL_UNIFORM_FORMAT_2F, 1);
           u->v0 = value0;
           u->v1 = value1;
-          program_changed (state, info, program);
+          program_changed (state, info, program, location);
         }
     }
 }
@@ -377,7 +392,7 @@ gsk_gl_uniform_state_set3f (GskGLUniformState *state,
           u->v0 = value0;
           u->v1 = value1;
           u->v2 = value2;
-          program_changed (state, info, program);
+          program_changed (state, info, program, location);
         }
     }
 }
@@ -406,7 +421,7 @@ gsk_gl_uniform_state_set4f (GskGLUniformState *state,
           u->v1 = value1;
           u->v2 = value2;
           u->v3 = value3;
-          program_changed (state, info, program);
+          program_changed (state, info, program, location);
         }
     }
 }
@@ -429,7 +444,7 @@ gsk_gl_uniform_state_set1ui (GskGLUniformState *state,
         {
           REPLACE_UNIFORM (info, u, GSK_GL_UNIFORM_FORMAT_1UI, 1);
           u->v0 = value0;
-          program_changed (state, info, program);
+          program_changed (state, info, program, location);
         }
     }
 }
@@ -452,7 +467,7 @@ gsk_gl_uniform_state_set1i (GskGLUniformState *state,
         {
           REPLACE_UNIFORM (info, u, GSK_GL_UNIFORM_FORMAT_1I, 1);
           u->v0 = value0;
-          program_changed (state, info, program);
+          program_changed (state, info, program, location);
         }
     }
 }
@@ -477,7 +492,7 @@ gsk_gl_uniform_state_set2i (GskGLUniformState *state,
           REPLACE_UNIFORM (info, u, GSK_GL_UNIFORM_FORMAT_2I, 1);
           u->v0 = value0;
           u->v1 = value1;
-          program_changed (state, info, program);
+          program_changed (state, info, program, location);
         }
     }
 }
@@ -504,7 +519,7 @@ gsk_gl_uniform_state_set3i (GskGLUniformState *state,
           u->v0 = value0;
           u->v1 = value1;
           u->v2 = value2;
-          program_changed (state, info, program);
+          program_changed (state, info, program, location);
         }
     }
 }
@@ -533,7 +548,7 @@ gsk_gl_uniform_state_set4i (GskGLUniformState *state,
           u->v1 = value1;
           u->v2 = value2;
           u->v3 = value3;
-          program_changed (state, info, program);
+          program_changed (state, info, program, location);
         }
     }
 }
@@ -571,7 +586,7 @@ gsk_gl_uniform_state_set_rounded_rect (GskGLUniformState    *state,
           REPLACE_UNIFORM (info, u, GSK_GL_UNIFORM_FORMAT_ROUNDED_RECT, 1);
 
           memcpy (u, rounded_rect, sizeof *rounded_rect);
-          program_changed (state, info, program);
+          program_changed (state, info, program, location);
         }
     }
 }
@@ -600,7 +615,7 @@ gsk_gl_uniform_state_set_matrix (GskGLUniformState       *state,
 
       REPLACE_UNIFORM (info, u, GSK_GL_UNIFORM_FORMAT_MATRIX, 1);
       memcpy (u, matrix, sizeof *matrix);
-      program_changed (state, info, program);
+      program_changed (state, info, program, location);
     }
 }
 
@@ -638,7 +653,7 @@ gsk_gl_uniform_state_set_texture (GskGLUniformState *state,
         {
           REPLACE_UNIFORM (info, u, GSK_GL_UNIFORM_FORMAT_TEXTURE, 1);
           *u = texture_slot;
-          program_changed (state, info, program);
+          program_changed (state, info, program, location);
         }
     }
 }
@@ -676,7 +691,7 @@ gsk_gl_uniform_state_set_color (GskGLUniformState *state,
         {
           REPLACE_UNIFORM (info, u, GSK_GL_UNIFORM_FORMAT_COLOR, 1);
           memcpy (u, color, sizeof *color);
-          program_changed (state, info, program);
+          program_changed (state, info, program, location);
         }
     }
 }
@@ -703,7 +718,7 @@ gsk_gl_uniform_state_set1fv (GskGLUniformState *state,
         {
           REPLACE_UNIFORM (info, u, GSK_GL_UNIFORM_FORMAT_1FV, count);
           memcpy (u, value, sizeof (Uniform1f) * count);
-          program_changed (state, info, program);
+          program_changed (state, info, program, location);
         }
     }
 }
@@ -730,7 +745,7 @@ gsk_gl_uniform_state_set2fv (GskGLUniformState *state,
         {
           REPLACE_UNIFORM (info, u, GSK_GL_UNIFORM_FORMAT_2FV, count);
           memcpy (u, value, sizeof (Uniform2f) * count);
-          program_changed (state, info, program);
+          program_changed (state, info, program, location);
         }
     }
 }
@@ -757,7 +772,7 @@ gsk_gl_uniform_state_set3fv (GskGLUniformState *state,
         {
           REPLACE_UNIFORM (info, u, GSK_GL_UNIFORM_FORMAT_3FV, count);
           memcpy (u, value, sizeof (Uniform3f) * count);
-          program_changed (state, info, program);
+          program_changed (state, info, program, location);
         }
     }
 }
@@ -784,7 +799,7 @@ gsk_gl_uniform_state_set4fv (GskGLUniformState *state,
         {
           REPLACE_UNIFORM (info, u, GSK_GL_UNIFORM_FORMAT_4FV, count);
           memcpy (u, value, sizeof (Uniform4f) * count);
-          program_changed (state, info, program);
+          program_changed (state, info, program, location);
         }
     }
 }
@@ -831,6 +846,8 @@ gsk_gl_uniform_state_end_frame (GskGLUniformState *state)
           /* Now advance for this items data */
           allocator += size;
         }
+
+      program_info->changed->len = 0;
     }
 
   state->values_pos = allocator;

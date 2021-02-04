@@ -27,8 +27,14 @@ G_BEGIN_DECLS
 
 typedef struct _GskGLUniformProgram
 {
+  /* Array of GskGLUniformInfo, index is GLSL location */
   GArray *uniform_info;
-  guint   n_changed;
+
+  /* To avoid walking unchanged locations in @uniform_info (or sparse
+   * elements used to map location->info), we use this to determine the
+   * specific uniforms that changed this frame.
+   */
+  GArray *changed;
 } GskGLUniformProgram;
 
 typedef struct _GskGLUniformState
@@ -205,23 +211,25 @@ gsk_gl_uniform_state_get_uniform_data (const GskGLUniformState *state,
       break;                                                                                       \
                                                                                                    \
     program_info = &g_array_index (state->program_info, GskGLUniformProgram, program_id);          \
-    if (program_info->n_changed == 0)                                                              \
+    if (program_info->changed->len == 0)                                                           \
       break;                                                                                       \
                                                                                                    \
-    for (guint i = 0; i < program_info->uniform_info->len; i++)                                    \
+    for (guint z = 0; z < program_info->changed->len; z++)                                         \
       {                                                                                            \
-        GskGLUniformInfo *info = &g_array_index (program_info->uniform_info, GskGLUniformInfo, i); \
+        guint location = g_array_index (program_info->changed, guint, z);                          \
+        GskGLUniformInfo *info = &g_array_index (program_info->uniform_info,                       \
+                                                 GskGLUniformInfo,                                 \
+                                                 location);                                        \
                                                                                                    \
-        if (!info->changed)                                                                        \
-          continue;                                                                                \
+        g_assert (info->changed);                                                                  \
                                                                                                    \
-        callback (info, i, user_data);                                                             \
+        callback (info, location, user_data);                                                      \
                                                                                                    \
         info->changed = FALSE;                                                                     \
         info->send_corners = FALSE;                                                                \
       }                                                                                            \
                                                                                                    \
-    program_info->n_changed = 0;                                                                   \
+    program_info->changed->len = 0;                                                                \
   } G_STMT_END
 
 G_END_DECLS

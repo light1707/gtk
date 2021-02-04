@@ -442,24 +442,31 @@ gsk_gl_command_queue_end_draw (GskGLCommandQueue *self)
     }
 
   /* Track the bind attachments that changed */
-  batch->draw.bind_offset = self->batch_binds->len;
-  batch->draw.bind_count = 0;
-  for (guint i = 0; i < G_N_ELEMENTS (self->attachments->textures); i++)
+  if (self->attachments->n_changed > 0)
     {
-      GskGLBindTexture *texture = &self->attachments->textures[i];
+      GskGLCommandBind *bind;
 
-      if (texture->changed && texture->id > 0)
+      batch->draw.bind_offset = self->batch_binds->len;
+      batch->draw.bind_count = self->attachments->n_changed;
+
+      g_array_set_size (self->batch_binds, self->batch_binds->len + batch->draw.bind_count);
+      bind = &g_array_index (self->batch_binds, GskGLCommandBind, self->batch_binds->len - batch->draw.bind_count);
+
+      for (guint i = 0;
+           (self->attachments->n_changed > 0 &&
+            i < G_N_ELEMENTS (self->attachments->textures));
+           i++)
         {
-          GskGLCommandBind bind;
+          GskGLBindTexture *texture = &self->attachments->textures[i];
 
-          texture->changed = FALSE;
-
-          bind.texture = texture->texture;
-          bind.id = texture->id;
-
-          g_array_append_val (self->batch_binds, bind);
-
-          batch->draw.bind_count++;
+          if (texture->changed)
+            {
+              texture->changed = FALSE;
+              bind->texture = texture->texture;
+              bind->id = texture->id;
+              bind++;
+              self->attachments->n_changed--;
+            }
         }
     }
 

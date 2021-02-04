@@ -31,6 +31,7 @@ gsk_gl_attachment_state_new (void)
 
   self->fbo.changed = FALSE;
   self->fbo.id = 0;
+  self->n_changed = 0;
 
   /* Initialize textures, assume we are 2D by default since it
    * doesn't really matter until we bind something other than
@@ -81,9 +82,13 @@ gsk_gl_attachment_state_bind_texture (GskGLAttachmentState *self,
       attach->target = target;
       attach->texture = texture;
       attach->id = id;
-      attach->changed = TRUE;
       attach->initial = FALSE;
-      self->has_texture_change = TRUE;
+
+      if (attach->changed == FALSE)
+        {
+          attach->changed = TRUE;
+          self->n_changed++;
+        }
     }
 }
 

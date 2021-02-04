@@ -52,13 +52,12 @@ struct _GskGLAttachmentState
 {
   GskGLBindFramebuffer fbo;
   GskGLBindTexture textures[8];
-  guint has_texture_change : 1;
+  guint n_changed;
 };
 
 GskGLAttachmentState *gsk_gl_attachment_state_new              (void);
 GskGLAttachmentState *gsk_gl_attachment_state_ref              (GskGLAttachmentState *self);
 void                  gsk_gl_attachment_state_unref            (GskGLAttachmentState *self);
-void                  gsk_gl_attachment_state_free             (GskGLAttachmentState *self);
 void                  gsk_gl_attachment_state_bind_texture     (GskGLAttachmentState *self,
                                                                 GLenum                target,
                                                                 GLenum                texture,

@@ -577,10 +577,7 @@ gsk_gl_uniform_state_set_rounded_rect (GskGLUniformState    *state,
           if (!info->send_corners)
             {
               if (info->initial ||
-                  !graphene_size_equal (&u->corner[0], &rounded_rect->corner[0]) ||
-                  !graphene_size_equal (&u->corner[1], &rounded_rect->corner[1]) ||
-                  !graphene_size_equal (&u->corner[2], &rounded_rect->corner[2]) ||
-                  !graphene_size_equal (&u->corner[3], &rounded_rect->corner[3]))
+                  memcmp (u->corner, rounded_rect->corner, sizeof u->corner) != 0)
                 info->send_corners = TRUE;
             }
 

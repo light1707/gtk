@@ -838,7 +838,7 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
       switch (batch->any.kind)
         {
         case GSK_GL_COMMAND_KIND_CLEAR:
-          if G_UNLIKELY (framebuffer != batch->clear.framebuffer)
+          if G_UNLIKELY (batch->clear.framebuffer != framebuffer)
             {
               framebuffer = batch->clear.framebuffer;
               glBindFramebuffer (GL_FRAMEBUFFER, framebuffer);

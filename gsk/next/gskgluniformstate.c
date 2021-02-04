@@ -236,7 +236,7 @@ get_uniform (GskGLUniformState  *state,
   g_assert (location < GL_MAX_UNIFORM_LOCATIONS || location == (guint)-1);
 
   /* Handle unused uniforms gracefully */
-  if (location == (guint)-1)
+  if G_UNLIKELY (location == (guint)-1)
     return NULL;
 
   /* Fast path for common case (state already initialized) */
@@ -246,9 +246,6 @@ get_uniform (GskGLUniformState  *state,
                location < program_info->uniform_info->len)
     {
       info = &g_array_index (program_info->uniform_info, GskGLUniformInfo, location);
-
-      if (info->format == 0)
-        goto setup_info;
 
       if G_LIKELY (format == info->format)
         {
@@ -266,6 +263,10 @@ get_uniform (GskGLUniformState  *state,
            * This can happen when using dynamic array lengths like the
            * "n_color_stops" in gradient shaders.
            */
+          goto setup_info;
+        }
+      else if (info->format == 0)
+        {
           goto setup_info;
         }
       else
@@ -606,12 +607,8 @@ gsk_gl_uniform_state_set_matrix (GskGLUniformState       *state,
 
   if ((u = get_uniform (state, program, GSK_GL_UNIFORM_FORMAT_MATRIX, 1, location, &info)))
     {
-      if (!info->initial)
-        {
-          if (graphene_matrix_equal_fast (u, matrix) ||
-              graphene_matrix_equal (u, matrix))
-            return;
-        }
+      if (!info->initial && graphene_matrix_equal_fast (u, matrix))
+        return;
 
       REPLACE_UNIFORM (info, u, GSK_GL_UNIFORM_FORMAT_MATRIX, 1);
       memcpy (u, matrix, sizeof *matrix);

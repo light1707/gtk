@@ -472,14 +472,14 @@ gsk_gl_command_queue_end_draw (GskGLCommandQueue *self)
 
   /* Do simple chaining of draw to last batch. */
   /* TODO: Use merging capabilities for out-or-order batching */
-  if (last_batch != NULL &&
+  if (batch->draw.uniform_count == 0 &&
+      batch->draw.bind_count == 0 &&
+      last_batch != NULL &&
       last_batch->any.kind == GSK_GL_COMMAND_KIND_DRAW &&
       last_batch->any.program == batch->any.program &&
       last_batch->any.viewport.width == batch->any.viewport.width &&
       last_batch->any.viewport.height == batch->any.viewport.height &&
       last_batch->draw.framebuffer == batch->draw.framebuffer &&
-      batch->draw.uniform_count == 0 &&
-      batch->draw.bind_count == 0 &&
       last_batch->draw.vbo_offset + last_batch->draw.vbo_count == batch->draw.vbo_offset)
     {
       last_batch->draw.vbo_count += batch->draw.vbo_count;

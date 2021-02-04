@@ -184,9 +184,9 @@ typedef struct _GskGLRenderOffscreen
 } GskGLRenderOffscreen;
 
 static void     gsk_gl_render_job_visit_node                (GskGLRenderJob       *job,
-                                                             GskRenderNode        *node);
+                                                             const GskRenderNode  *node);
 static gboolean gsk_gl_render_job_visit_node_with_offscreen (GskGLRenderJob       *job,
-                                                             GskRenderNode        *node,
+                                                             const GskRenderNode  *node,
                                                              GskGLRenderOffscreen *offscreen);
 
 static inline void
@@ -761,8 +761,8 @@ gsk_gl_render_job_transform_rounded_rect (GskGLRenderJob       *job,
 }
 
 static inline gboolean
-gsk_gl_render_job_node_overlaps_clip (GskGLRenderJob *job,
-                                      GskRenderNode  *node)
+gsk_gl_render_job_node_overlaps_clip (GskGLRenderJob      *job,
+                                      const GskRenderNode *node)
 {
   const GskRoundedRect *clip = gsk_gl_render_job_get_clip (job);
   graphene_rect_t transformed_bounds;
@@ -929,9 +929,9 @@ gsk_gl_render_job_draw_offscreen_rect (GskGLRenderJob        *job,
   gsk_gl_render_job_draw_coords (job, min_x, min_y, max_x, max_y);
 }
 
-static void
-gsk_gl_render_job_visit_as_fallback (GskGLRenderJob *job,
-                                     GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_as_fallback (GskGLRenderJob      *job,
+                                     const GskRenderNode *node)
 {
   float scale_x = job->scale_x;
   float scale_y = job->scale_y;
@@ -980,7 +980,8 @@ gsk_gl_render_job_visit_as_fallback (GskGLRenderJob *job,
 
     cairo_save (cr);
     cairo_translate (cr, - floorf (node->bounds.origin.x), - floorf (node->bounds.origin.y));
-    gsk_render_node_draw (node, cr);
+    /* Render nodes don't modify state, so casting away the const is fine here */
+    gsk_render_node_draw ((GskRenderNode *)node, cr);
     cairo_restore (cr);
     cairo_destroy (cr);
   }
@@ -1204,9 +1205,9 @@ blur_node (GskGLRenderJob       *job,
   *max_y = job->offset_y + node->bounds.origin.y + node->bounds.size.height + half_blur_extra;
 }
 
-static void
-gsk_gl_render_job_visit_color_node (GskGLRenderJob *job,
-                                    GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_color_node (GskGLRenderJob      *job,
+                                    const GskRenderNode *node)
 {
   gsk_gl_render_job_begin_draw (job, job->driver->color);
   gsk_gl_program_set_uniform_color (job->driver->color,
@@ -1216,9 +1217,9 @@ gsk_gl_render_job_visit_color_node (GskGLRenderJob *job,
   gsk_gl_program_end_draw (job->driver->color);
 }
 
-static void
-gsk_gl_render_job_visit_linear_gradient_node (GskGLRenderJob *job,
-                                              GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_linear_gradient_node (GskGLRenderJob      *job,
+                                              const GskRenderNode *node)
 {
   const GskColorStop *stops = gsk_linear_gradient_node_get_color_stops (node, NULL);
   const graphene_point_t *start = gsk_linear_gradient_node_get_start (node);
@@ -1250,9 +1251,9 @@ gsk_gl_render_job_visit_linear_gradient_node (GskGLRenderJob *job,
   gsk_gl_program_end_draw (job->driver->linear_gradient);
 }
 
-static void
-gsk_gl_render_job_visit_conic_gradient_node (GskGLRenderJob *job,
-                                             GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_conic_gradient_node (GskGLRenderJob      *job,
+                                             const GskRenderNode *node)
 {
   static const float scale = 0.5f * M_1_PI;
 
@@ -1282,9 +1283,9 @@ gsk_gl_render_job_visit_conic_gradient_node (GskGLRenderJob *job,
   gsk_gl_program_end_draw (job->driver->conic_gradient);
 }
 
-static void
-gsk_gl_render_job_visit_radial_gradient_node (GskGLRenderJob *job,
-                                              GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_radial_gradient_node (GskGLRenderJob      *job,
+                                              const GskRenderNode *node)
 {
   int n_color_stops = gsk_radial_gradient_node_get_n_color_stops (node);
   const GskColorStop *stops = gsk_radial_gradient_node_get_color_stops (node, NULL);
@@ -1323,9 +1324,9 @@ gsk_gl_render_job_visit_radial_gradient_node (GskGLRenderJob *job,
   gsk_gl_program_end_draw (job->driver->radial_gradient);
 }
 
-static void
+static inline void
 gsk_gl_render_job_visit_clipped_child (GskGLRenderJob        *job,
-                                       GskRenderNode         *child,
+                                       const GskRenderNode   *child,
                                        const graphene_rect_t *clip)
 {
   graphene_rect_t transformed_clip;
@@ -1384,9 +1385,9 @@ gsk_gl_render_job_visit_clipped_child (GskGLRenderJob        *job,
     }
 }
 
-static void
-gsk_gl_render_job_visit_clip_node (GskGLRenderJob *job,
-                                   GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_clip_node (GskGLRenderJob      *job,
+                                   const GskRenderNode *node)
 {
   const graphene_rect_t *clip = gsk_clip_node_get_clip (node);
   GskRenderNode *child = gsk_clip_node_get_child (node);
@@ -1394,9 +1395,9 @@ gsk_gl_render_job_visit_clip_node (GskGLRenderJob *job,
   gsk_gl_render_job_visit_clipped_child (job, child, clip);
 }
 
-static void
-gsk_gl_render_job_visit_rounded_clip_node (GskGLRenderJob *job,
-                                           GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_rounded_clip_node (GskGLRenderJob      *job,
+                                           const GskRenderNode *node)
 {
   GskRenderNode *child = gsk_rounded_clip_node_get_child (node);
   const GskRoundedRect *clip = gsk_rounded_clip_node_get_clip (node);
@@ -1535,9 +1536,9 @@ sort_border_sides (const GdkRGBA *colors,
     }
 }
 
-static void
-gsk_gl_render_job_visit_uniform_border_node (GskGLRenderJob *job,
-                                             GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_uniform_border_node (GskGLRenderJob      *job,
+                                             const GskRenderNode *node)
 {
   const GskRoundedRect *rounded_outline = gsk_border_node_get_outline (node);
   const GdkRGBA *colors = gsk_border_node_get_colors (node);
@@ -1563,9 +1564,9 @@ gsk_gl_render_job_visit_uniform_border_node (GskGLRenderJob *job,
   gsk_gl_program_end_draw (job->driver->inset_shadow);
 }
 
-static void
-gsk_gl_render_job_visit_border_node (GskGLRenderJob *job,
-                                     GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_border_node (GskGLRenderJob      *job,
+                                     const GskRenderNode *node)
 {
   const GskRoundedRect *rounded_outline = gsk_border_node_get_outline (node);
   const GdkRGBA *colors = gsk_border_node_get_colors (node);
@@ -1734,9 +1735,9 @@ result_is_axis_aligned (GskTransform          *transform,
   return TRUE;
 }
 
-static void
-gsk_gl_render_job_visit_transform_node (GskGLRenderJob *job,
-                                        GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_transform_node (GskGLRenderJob      *job,
+                                        const GskRenderNode *node)
 {
   GskTransform *transform = gsk_transform_node_get_transform (node);
   const GskTransformCategory category = gsk_transform_get_category (transform);
@@ -1816,9 +1817,9 @@ gsk_gl_render_job_visit_transform_node (GskGLRenderJob *job,
     }
 }
 
-static void
-gsk_gl_render_job_visit_unblurred_inset_shadow_node (GskGLRenderJob *job,
-                                                     GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_unblurred_inset_shadow_node (GskGLRenderJob      *job,
+                                                     const GskRenderNode *node)
 {
   const GskRoundedRect *outline = gsk_inset_shadow_node_get_outline (node);
   GskRoundedRect transformed_outline;
@@ -1843,9 +1844,9 @@ gsk_gl_render_job_visit_unblurred_inset_shadow_node (GskGLRenderJob *job,
   gsk_gl_program_end_draw (job->driver->inset_shadow);
 }
 
-static void
-gsk_gl_render_job_visit_blurred_inset_shadow_node (GskGLRenderJob *job,
-                                                   GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_blurred_inset_shadow_node (GskGLRenderJob      *job,
+                                                   const GskRenderNode *node)
 {
   const GskRoundedRect *node_outline = gsk_inset_shadow_node_get_outline (node);
   float blur_radius = gsk_inset_shadow_node_get_blur_radius (node);
@@ -2016,9 +2017,9 @@ gsk_gl_render_job_visit_blurred_inset_shadow_node (GskGLRenderJob *job,
   }
 }
 
-static void
-gsk_gl_render_job_visit_unblurred_outset_shadow_node (GskGLRenderJob *job,
-                                                      GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_unblurred_outset_shadow_node (GskGLRenderJob      *job,
+                                                      const GskRenderNode *node)
 {
   const GskRoundedRect *outline = gsk_outset_shadow_node_get_outline (node);
   GskRoundedRect transformed_outline;
@@ -2093,9 +2094,9 @@ gsk_gl_render_job_visit_unblurred_outset_shadow_node (GskGLRenderJob *job,
   gsk_gl_program_end_draw (job->driver->unblurred_outset_shadow);
 }
 
-static void
-gsk_gl_render_job_visit_blurred_outset_shadow_node (GskGLRenderJob *job,
-                                                    GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_blurred_outset_shadow_node (GskGLRenderJob      *job,
+                                                    const GskRenderNode *node)
 {
   static const GdkRGBA white = { 1, 1, 1, 1 };
 
@@ -2432,13 +2433,12 @@ equal_texture_nodes (GskRenderNode *node1,
   return graphene_rect_equal (&node1->bounds, &node2->bounds);
 }
 
-static void
-gsk_gl_render_job_visit_cross_fade_node (GskGLRenderJob *job,
-                                         GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_cross_fade_node (GskGLRenderJob      *job,
+                                         const GskRenderNode *node)
 {
-  GskRenderNode *start_node = gsk_cross_fade_node_get_start_child (node);
-  GskRenderNode *end_node = gsk_cross_fade_node_get_end_child (node);
-  float progress = gsk_cross_fade_node_get_progress (node);
+  const GskRenderNode *start_node = gsk_cross_fade_node_get_start_child (node);
+  const GskRenderNode *end_node = gsk_cross_fade_node_get_end_child (node);
   GskGLRenderOffscreen offscreen_start = {0};
   GskGLRenderOffscreen offscreen_end = {0};
 
@@ -2492,9 +2492,9 @@ gsk_gl_render_job_visit_cross_fade_node (GskGLRenderJob *job,
   gsk_gl_program_end_draw (job->driver->cross_fade);
 }
 
-static void
-gsk_gl_render_job_visit_opacity_node (GskGLRenderJob *job,
-                                      GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_opacity_node (GskGLRenderJob      *job,
+                                      const GskRenderNode *node)
 {
   GskRenderNode *child = gsk_opacity_node_get_child (node);
   float opacity = gsk_opacity_node_get_opacity (node);
@@ -2541,11 +2541,11 @@ gsk_gl_render_job_visit_opacity_node (GskGLRenderJob *job,
   job->driver->last_shared_state++;
 }
 
-static void
-gsk_gl_render_job_visit_text_node (GskGLRenderJob *job,
-                                   GskRenderNode  *node,
-                                   const GdkRGBA  *color,
-                                   gboolean        force_color)
+static inline void
+gsk_gl_render_job_visit_text_node (GskGLRenderJob      *job,
+                                   const GskRenderNode *node,
+                                   const GdkRGBA       *color,
+                                   gboolean             force_color)
 {
   const PangoFont *font = gsk_text_node_get_font (node);
   const PangoGlyphInfo *glyphs = gsk_text_node_get_glyphs (node, NULL);
@@ -2667,9 +2667,9 @@ next:
   gsk_gl_program_end_draw (program);
 }
 
-static void
-gsk_gl_render_job_visit_shadow_node (GskGLRenderJob *job,
-                                     GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_shadow_node (GskGLRenderJob      *job,
+                                     const GskRenderNode *node)
 {
   const gsize n_shadows = gsk_shadow_node_get_n_shadows (node);
   GskRenderNode *original_child = gsk_shadow_node_get_child (node);
@@ -2762,9 +2762,9 @@ gsk_gl_render_job_visit_shadow_node (GskGLRenderJob *job,
   gsk_gl_render_job_visit_node (job, original_child);
 }
 
-static void
-gsk_gl_render_job_visit_blur_node (GskGLRenderJob *job,
-                                   GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_blur_node (GskGLRenderJob      *job,
+                                   const GskRenderNode *node)
 {
   GskRenderNode *child = gsk_blur_node_get_child (node);
   float blur_radius = gsk_blur_node_get_radius (node);
@@ -2811,9 +2811,9 @@ gsk_gl_render_job_visit_blur_node (GskGLRenderJob *job,
   gsk_gl_program_end_draw (job->driver->blit);
 }
 
-static void
-gsk_gl_render_job_visit_blend_node (GskGLRenderJob *job,
-                                    GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_blend_node (GskGLRenderJob      *job,
+                                    const GskRenderNode *node)
 {
   GskRenderNode *top_child = gsk_blend_node_get_top_child (node);
   GskRenderNode *bottom_child = gsk_blend_node_get_bottom_child (node);
@@ -2871,9 +2871,9 @@ gsk_gl_render_job_visit_blend_node (GskGLRenderJob *job,
   gsk_gl_program_end_draw (job->driver->blend);
 }
 
-static void
-gsk_gl_render_job_visit_color_matrix_node (GskGLRenderJob *job,
-                                           GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_color_matrix_node (GskGLRenderJob      *job,
+                                           const GskRenderNode *node)
 {
   GskRenderNode *child = gsk_color_matrix_node_get_child (node);
   GskGLRenderOffscreen offscreen = {0};
@@ -2909,9 +2909,9 @@ gsk_gl_render_job_visit_color_matrix_node (GskGLRenderJob *job,
   gsk_gl_program_end_draw (job->driver->color_matrix);
 }
 
-static void
-gsk_gl_render_job_visit_gl_shader_node_fallback (GskGLRenderJob *job,
-                                                 GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_gl_shader_node_fallback (GskGLRenderJob      *job,
+                                                 const GskRenderNode *node)
 {
   static const GdkRGBA pink = { 255 / 255., 105 / 255., 180 / 255., 1.0 };
 
@@ -2923,9 +2923,9 @@ gsk_gl_render_job_visit_gl_shader_node_fallback (GskGLRenderJob *job,
   gsk_gl_program_end_draw (job->driver->color);
 }
 
-static void
-gsk_gl_render_job_visit_gl_shader_node (GskGLRenderJob *job,
-                                        GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_gl_shader_node (GskGLRenderJob      *job,
+                                        const GskRenderNode *node)
 {
   GError *error = NULL;
   GskGLShader *shader;
@@ -3069,9 +3069,9 @@ gsk_gl_render_job_upload_texture (GskGLRenderJob       *job,
     }
 }
 
-static void
-gsk_gl_render_job_visit_texture_node (GskGLRenderJob *job,
-                                      GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_texture_node (GskGLRenderJob      *job,
+                                      const GskRenderNode *node)
 {
   GdkTexture *texture = gsk_texture_node_get_texture (node);
   int max_texture_size = job->command_queue->max_texture_size;
@@ -3178,9 +3178,9 @@ gsk_gl_render_job_visit_texture_node (GskGLRenderJob *job,
     }
 }
 
-static void
-gsk_gl_render_job_visit_repeat_node (GskGLRenderJob *job,
-                                     GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_repeat_node (GskGLRenderJob      *job,
+                                     const GskRenderNode *node)
 {
   GskRenderNode *child = gsk_repeat_node_get_child (node);
   const graphene_rect_t *child_bounds = gsk_repeat_node_get_child_bounds (node);
@@ -3238,9 +3238,9 @@ gsk_gl_render_job_visit_repeat_node (GskGLRenderJob *job,
   gsk_gl_program_end_draw (job->driver->repeat);
 }
 
-static void
-gsk_gl_render_job_visit_node (GskGLRenderJob *job,
-                              GskRenderNode  *node)
+static inline void
+gsk_gl_render_job_visit_node (GskGLRenderJob      *job,
+                              const GskRenderNode *node)
 {
   g_assert (job != NULL);
   g_assert (node != NULL);
@@ -3404,7 +3404,7 @@ gsk_gl_render_job_visit_node (GskGLRenderJob *job,
 
 static gboolean
 gsk_gl_render_job_visit_node_with_offscreen (GskGLRenderJob       *job,
-                                             GskRenderNode        *node,
+                                             const GskRenderNode  *node,
                                              GskGLRenderOffscreen *offscreen)
 {
   GskTextureKey key;

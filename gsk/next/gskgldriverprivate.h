@@ -49,7 +49,7 @@ enum {
 };
 
 typedef struct {
-  gpointer        pointer;
+  gconstpointer   pointer;
   float           scale_x;
   float           scale_y;
   int             filter;

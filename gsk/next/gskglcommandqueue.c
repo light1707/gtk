@@ -851,6 +851,7 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
                           batch->any.viewport.width,
                           batch->any.viewport.height);
 
+          glClearColor (0, 0, 0, 0);
           glClear (batch->clear.bits);
         break;
 

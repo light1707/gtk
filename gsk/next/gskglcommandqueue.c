@@ -373,17 +373,22 @@ gsk_gl_command_queue_uniform_snapshot_cb (const GskGLUniformInfo *info,
                                           guint                   location,
                                           gpointer                user_data)
 {
-  GskGLCommandQueue *self = user_data;
+  GArray *uniforms = user_data;
   GskGLCommandUniform *uniform;
+  guint index;
 
   g_assert (info != NULL);
   g_assert (info->initial == FALSE);
   g_assert (info->changed == TRUE);
-  g_assert (GSK_IS_GL_COMMAND_QUEUE (self));
 
-  g_array_set_size (self->batch_uniforms, self->batch_uniforms->len+1);
+  /* To avoid calling g_array_set_size() a bunch in this callback,
+   * we've already "set_size()" before the callback was called and
+   * so we can instead be certain the size is large enough and use
+   * ++ on length directly.
+   */
+  index = uniforms->len++;
 
-  uniform = &g_array_index (self->batch_uniforms, GskGLCommandUniform, self->batch_uniforms->len-1);
+  uniform = &g_array_index (uniforms, GskGLCommandUniform, index);
   uniform->location = location;
   uniform->info = *info;
 }
@@ -393,6 +398,7 @@ gsk_gl_command_queue_end_draw (GskGLCommandQueue *self)
 {
   GskGLCommandBatch *last_batch;
   GskGLCommandBatch *batch;
+  guint n_changed;
 
   g_assert (GSK_IS_GL_COMMAND_QUEUE (self));
   g_assert (self->batches->len > 0);
@@ -418,13 +424,30 @@ gsk_gl_command_queue_end_draw (GskGLCommandQueue *self)
   batch->draw.framebuffer = self->attachments->fbo.id;
   self->attachments->fbo.changed = FALSE;
 
-  /* Track the list of uniforms that changed */
-  batch->draw.uniform_offset = self->batch_uniforms->len;
-  gsk_gl_uniform_state_snapshot (self->uniforms,
-                                 batch->any.program,
-                                 gsk_gl_command_queue_uniform_snapshot_cb,
-                                 self);
-  batch->draw.uniform_count = self->batch_uniforms->len - batch->draw.uniform_offset;
+  /* To avoid many g_array_set_size() calls, we first resize the
+   * array to be large enough for all our changes. Then we just ++
+   * from the callback.
+   */
+  n_changed = gsk_gl_uniform_state_get_n_changed (self->uniforms, batch->any.program);
+
+  if (n_changed)
+    {
+      g_array_set_size (self->batch_uniforms, self->batch_uniforms->len + n_changed);
+      self->batch_uniforms->len -= n_changed;
+
+      /* Store information about uniforms that changed */
+      batch->draw.uniform_offset = self->batch_uniforms->len;
+      gsk_gl_uniform_state_snapshot (self->uniforms,
+                                     batch->any.program,
+                                     gsk_gl_command_queue_uniform_snapshot_cb,
+                                     self->batch_uniforms);
+      batch->draw.uniform_count = self->batch_uniforms->len - batch->draw.uniform_offset;
+    }
+  else
+    {
+      batch->draw.uniform_offset = 0;
+      batch->draw.uniform_count = 0;
+    }
 
   /* Track the bind attachments that changed */
   batch->draw.bind_offset = self->batch_binds->len;

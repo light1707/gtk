@@ -232,6 +232,13 @@ gsk_gl_uniform_state_get_uniform_data (const GskGLUniformState *state,
     program_info->changed->len = 0;                                                                \
   } G_STMT_END
 
+static inline guint
+gsk_gl_uniform_state_get_n_changed (GskGLUniformState *self,
+                                    guint              program_id)
+{
+  return g_array_index (self->program_info, GskGLUniformProgram, program_id).changed->len;
+}
+
 G_END_DECLS
 
 #endif /* GSK_GL_UNIFORM_STATE_PRIVATE_H */

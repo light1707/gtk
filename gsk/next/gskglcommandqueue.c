@@ -889,11 +889,10 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
 
           if G_UNLIKELY (batch->draw.bind_count > 0)
             {
+              const GskGLCommandBind *bind = &g_array_index (self->batch_binds, GskGLCommandBind, batch->draw.bind_offset);
+
               for (guint i = 0; i < batch->draw.bind_count; i++)
                 {
-                  guint index = batch->draw.bind_offset + i;
-                  GskGLCommandBind *bind = &g_array_index (self->batch_binds, GskGLCommandBind, index);
-
                   if (active != bind->texture)
                     {
                       active = bind->texture;
@@ -901,20 +900,19 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
                     }
 
                   glBindTexture (GL_TEXTURE_2D, bind->id);
+                  bind++;
                 }
             }
 
           if (batch->draw.uniform_count > 0)
             {
+              const GskGLCommandUniform *u = &g_array_index (self->batch_uniforms, GskGLCommandUniform, batch->draw.uniform_offset);
+
               for (guint i = 0; i < batch->draw.uniform_count; i++)
                 {
-                  guint index = batch->draw.uniform_offset + i;
-                  GskGLCommandUniform *u = &g_array_index (self->batch_uniforms, GskGLCommandUniform, index);
-
-                  g_assert (index < self->batch_uniforms->len);
-
                   apply_uniform (gsk_gl_uniform_state_get_uniform_data (self->uniforms, u->info.offset),
                                  u->info, u->location);
+                  u++;
                 }
 
               n_uniforms += batch->draw.uniform_count;

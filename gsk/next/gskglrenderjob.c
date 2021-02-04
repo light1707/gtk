@@ -248,7 +248,7 @@ gsk_rounded_rect_shrink_to_minimum (GskRoundedRect *self)
 }
 
 static inline gboolean G_GNUC_PURE
-node_supports_transform (GskRenderNode *node)
+node_supports_transform (const GskRenderNode *node)
 {
   /* Some nodes can't handle non-trivial transforms without being
    * rendered to a texture (e.g. rotated clips, etc.). Some however work
@@ -278,7 +278,7 @@ node_supports_transform (GskRenderNode *node)
 }
 
 static inline gboolean G_GNUC_PURE
-color_matrix_modifies_alpha (GskRenderNode *node)
+color_matrix_modifies_alpha (const GskRenderNode *node)
 {
   const graphene_matrix_t *matrix = gsk_color_matrix_node_get_color_matrix (node);
   const graphene_vec4_t *offset = gsk_color_matrix_node_get_color_offset (node);
@@ -1153,7 +1153,7 @@ blur_offscreen (GskGLRenderJob       *job,
 static void
 blur_node (GskGLRenderJob       *job,
            GskGLRenderOffscreen *offscreen,
-           GskRenderNode        *node,
+           const GskRenderNode  *node,
            float                 blur_radius,
            float                *min_x,
            float                *max_x,
@@ -1390,7 +1390,7 @@ gsk_gl_render_job_visit_clip_node (GskGLRenderJob      *job,
                                    const GskRenderNode *node)
 {
   const graphene_rect_t *clip = gsk_clip_node_get_clip (node);
-  GskRenderNode *child = gsk_clip_node_get_child (node);
+  const GskRenderNode *child = gsk_clip_node_get_child (node);
 
   gsk_gl_render_job_visit_clipped_child (job, child, clip);
 }
@@ -1399,7 +1399,7 @@ static inline void
 gsk_gl_render_job_visit_rounded_clip_node (GskGLRenderJob      *job,
                                            const GskRenderNode *node)
 {
-  GskRenderNode *child = gsk_rounded_clip_node_get_child (node);
+  const GskRenderNode *child = gsk_rounded_clip_node_get_child (node);
   const GskRoundedRect *clip = gsk_rounded_clip_node_get_clip (node);
   GskRoundedRect current_clip;
   GskRoundedRect transformed_clip;
@@ -1741,7 +1741,7 @@ gsk_gl_render_job_visit_transform_node (GskGLRenderJob      *job,
 {
   GskTransform *transform = gsk_transform_node_get_transform (node);
   const GskTransformCategory category = gsk_transform_get_category (transform);
-  GskRenderNode *child = gsk_transform_node_get_child (node);
+  const GskRenderNode *child = gsk_transform_node_get_child (node);
 
   switch (category)
     {
@@ -2419,8 +2419,8 @@ gsk_gl_render_job_visit_blurred_outset_shadow_node (GskGLRenderJob      *job,
 }
 
 static inline gboolean G_GNUC_PURE
-equal_texture_nodes (GskRenderNode *node1,
-                     GskRenderNode *node2)
+equal_texture_nodes (const GskRenderNode *node1,
+                     const GskRenderNode *node2)
 {
   if (gsk_render_node_get_node_type (node1) != GSK_TEXTURE_NODE ||
       gsk_render_node_get_node_type (node2) != GSK_TEXTURE_NODE)
@@ -2439,6 +2439,7 @@ gsk_gl_render_job_visit_cross_fade_node (GskGLRenderJob      *job,
 {
   const GskRenderNode *start_node = gsk_cross_fade_node_get_start_child (node);
   const GskRenderNode *end_node = gsk_cross_fade_node_get_end_child (node);
+  float progress = gsk_cross_fade_node_get_progress (node);
   GskGLRenderOffscreen offscreen_start = {0};
   GskGLRenderOffscreen offscreen_end = {0};
 
@@ -2496,7 +2497,7 @@ static inline void
 gsk_gl_render_job_visit_opacity_node (GskGLRenderJob      *job,
                                       const GskRenderNode *node)
 {
-  GskRenderNode *child = gsk_opacity_node_get_child (node);
+  const GskRenderNode *child = gsk_opacity_node_get_child (node);
   float opacity = gsk_opacity_node_get_opacity (node);
   float prev_alpha = job->alpha;
   float new_alpha = job->alpha * opacity;
@@ -2672,8 +2673,8 @@ gsk_gl_render_job_visit_shadow_node (GskGLRenderJob      *job,
                                      const GskRenderNode *node)
 {
   const gsize n_shadows = gsk_shadow_node_get_n_shadows (node);
-  GskRenderNode *original_child = gsk_shadow_node_get_child (node);
-  GskRenderNode *shadow_child = original_child;
+  const GskRenderNode *original_child = gsk_shadow_node_get_child (node);
+  const GskRenderNode *shadow_child = original_child;
 
   /* Shadow nodes recolor every pixel of the source texture, but leave the alpha in tact.
    * If the child is a color matrix node that doesn't touch the alpha, we can throw that away. */
@@ -2766,7 +2767,7 @@ static inline void
 gsk_gl_render_job_visit_blur_node (GskGLRenderJob      *job,
                                    const GskRenderNode *node)
 {
-  GskRenderNode *child = gsk_blur_node_get_child (node);
+  const GskRenderNode *child = gsk_blur_node_get_child (node);
   float blur_radius = gsk_blur_node_get_radius (node);
   GskGLRenderOffscreen offscreen = {0};
   GskTextureKey key;
@@ -2815,8 +2816,8 @@ static inline void
 gsk_gl_render_job_visit_blend_node (GskGLRenderJob      *job,
                                     const GskRenderNode *node)
 {
-  GskRenderNode *top_child = gsk_blend_node_get_top_child (node);
-  GskRenderNode *bottom_child = gsk_blend_node_get_bottom_child (node);
+  const GskRenderNode *top_child = gsk_blend_node_get_top_child (node);
+  const GskRenderNode *bottom_child = gsk_blend_node_get_bottom_child (node);
   GskGLRenderOffscreen top_offscreen = {0};
   GskGLRenderOffscreen bottom_offscreen = {0};
 
@@ -2875,7 +2876,7 @@ static inline void
 gsk_gl_render_job_visit_color_matrix_node (GskGLRenderJob      *job,
                                            const GskRenderNode *node)
 {
-  GskRenderNode *child = gsk_color_matrix_node_get_child (node);
+  const GskRenderNode *child = gsk_color_matrix_node_get_child (node);
   GskGLRenderOffscreen offscreen = {0};
   float offset[4];
 
@@ -2958,7 +2959,7 @@ gsk_gl_render_job_visit_gl_shader_node (GskGLRenderJob      *job,
 
       for (guint i = 0; i < n_children; i++)
         {
-          GskRenderNode *child = gsk_gl_shader_node_get_child (node, i);
+          const GskRenderNode *child = gsk_gl_shader_node_get_child (node, i);
 
           offscreens[i].bounds = &node->bounds;
           offscreens[i].force_offscreen = TRUE;
@@ -3182,7 +3183,7 @@ static inline void
 gsk_gl_render_job_visit_repeat_node (GskGLRenderJob      *job,
                                      const GskRenderNode *node)
 {
-  GskRenderNode *child = gsk_repeat_node_get_child (node);
+  const GskRenderNode *child = gsk_repeat_node_get_child (node);
   const graphene_rect_t *child_bounds = gsk_repeat_node_get_child_bounds (node);
   GskGLRenderOffscreen offscreen = {0};
 
@@ -3296,7 +3297,7 @@ gsk_gl_render_job_visit_node (GskGLRenderJob      *job,
 
         for (guint i = 0; i < n_children; i++)
           {
-            GskRenderNode *child = gsk_container_node_get_child (node, i);
+            const GskRenderNode *child = gsk_container_node_get_child (node, i);
             gsk_gl_render_job_visit_node (job, child);
           }
       }
@@ -3304,8 +3305,8 @@ gsk_gl_render_job_visit_node (GskGLRenderJob      *job,
 
     case GSK_CROSS_FADE_NODE:
       {
-        GskRenderNode *start_node = gsk_cross_fade_node_get_start_child (node);
-        GskRenderNode *end_node = gsk_cross_fade_node_get_end_child (node);
+        const GskRenderNode *start_node = gsk_cross_fade_node_get_start_child (node);
+        const GskRenderNode *end_node = gsk_cross_fade_node_get_end_child (node);
         float progress = gsk_cross_fade_node_get_progress (node);
 
         if (progress <= 0.0f)

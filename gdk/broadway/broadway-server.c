@@ -605,7 +605,7 @@ update_future_pointer_info (BroadwayServer *server, BroadwayInputPointerMsg *dat
 static void
 queue_input_message (BroadwayServer *server, BroadwayInputMsg *msg)
 {
-  server->input_messages = g_list_append (server->input_messages, g_memdup (msg, sizeof (BroadwayInputMsg)));
+  server->input_messages = g_list_append (server->input_messages, g_memdup2 (msg, sizeof (BroadwayInputMsg)));
 }
 
 static void

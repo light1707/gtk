@@ -649,15 +649,15 @@ apply_uniform (gconstpointer    dataptr,
     break;
 
     case GSK_GL_UNIFORM_FORMAT_2F:
-      glUniform2f (location, data->fval[0], data->fval[1]);
+      glUniform2fv (location, 1, &data->fval[0]);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_3F:
-      glUniform3f (location, data->fval[0], data->fval[1], data->fval[2]);
+      glUniform3fv (location, 1, &data->fval[0]);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_4F:
-      glUniform4f (location, data->fval[0], data->fval[1], data->fval[2], data->fval[3]);
+      glUniform4fv (location, 1, &data->fval[0]);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_1FV:
@@ -682,15 +682,15 @@ apply_uniform (gconstpointer    dataptr,
     break;
 
     case GSK_GL_UNIFORM_FORMAT_2I:
-      glUniform2i (location, data->ival[0], data->ival[1]);
+      glUniform2iv (location, 1, &data->ival[0]);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_3I:
-      glUniform3i (location, data->ival[0], data->ival[1], data->ival[2]);
+      glUniform3iv (location, 1, &data->ival[0]);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_4I:
-      glUniform4i (location, data->ival[0], data->ival[1], data->ival[2], data->ival[3]);
+      glUniform4iv (location, 1, &data->ival[0]);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_1UI:

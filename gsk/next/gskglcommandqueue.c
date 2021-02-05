@@ -629,7 +629,7 @@ gsk_gl_command_queue_delete_program (GskGLCommandQueue *self,
   gsk_gl_uniform_state_clear_program (self->uniforms, program);
 }
 
-static void
+static inline void
 apply_uniform (gconstpointer    dataptr,
                GskGLUniformInfo info,
                guint            location)

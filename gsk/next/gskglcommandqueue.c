@@ -690,9 +690,16 @@ apply_uniform (gconstpointer    dataptr,
     break;
 
     case GSK_GL_UNIFORM_FORMAT_MATRIX: {
+#if 0
       float mat[16];
       graphene_matrix_to_float (dataptr, mat);
-      glUniformMatrix4fv (location, 1, GL_FALSE, mat);
+#else
+      /* We can avoid the transform to float it seems. Are there
+       * any platforms where this does not work?
+       */
+      G_STATIC_ASSERT (sizeof (graphene_matrix_t) == 16*4);
+      glUniformMatrix4fv (location, 1, GL_FALSE, dataptr);
+#endif
     }
     break;
 

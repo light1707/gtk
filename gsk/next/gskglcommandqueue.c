@@ -721,10 +721,10 @@ apply_uniform (gconstpointer    dataptr,
 }
 
 static inline void
-apply_viewport (guint16 *current_width,
-                guint16 *current_height,
-                guint16 width,
-                guint16 height)
+apply_viewport (guint *current_width,
+                guint *current_height,
+                guint  width,
+                guint  height)
 {
   if G_UNLIKELY (*current_width != width || *current_height != height)
     {
@@ -785,8 +785,8 @@ gsk_gl_command_queue_execute (GskGLCommandQueue    *self,
   GLuint vao_id;
   int next_batch_index;
   guint program = 0;
-  guint16 width = 0;
-  guint16 height = 0;
+  guint width = 0;
+  guint height = 0;
   guint n_binds = 0;
   guint n_fbos = 0;
   guint n_uniforms = 0;

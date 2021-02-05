@@ -634,85 +634,77 @@ apply_uniform (gconstpointer    dataptr,
                GskGLUniformInfo info,
                guint            location)
 {
-  const union {
-    graphene_matrix_t matrix[0];
-    GskRoundedRect rounded_rect[0];
-    float fval[0];
-    int ival[0];
-    guint uval[0];
-  } *data = dataptr;
-
   switch (info.format)
     {
     case GSK_GL_UNIFORM_FORMAT_1F:
-      glUniform1f (location, data->fval[0]);
+      glUniform1fv (location, 1, dataptr);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_2F:
-      glUniform2fv (location, 1, &data->fval[0]);
+      glUniform2fv (location, 1, dataptr);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_3F:
-      glUniform3fv (location, 1, &data->fval[0]);
+      glUniform3fv (location, 1, dataptr);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_4F:
-      glUniform4fv (location, 1, &data->fval[0]);
+      glUniform4fv (location, 1, dataptr);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_1FV:
-      glUniform1fv (location, info.array_count, data->fval);
+      glUniform1fv (location, info.array_count, dataptr);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_2FV:
-      glUniform2fv (location, info.array_count, data->fval);
+      glUniform2fv (location, info.array_count, dataptr);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_3FV:
-      glUniform3fv (location, info.array_count, data->fval);
+      glUniform3fv (location, info.array_count, dataptr);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_4FV:
-      glUniform4fv (location, info.array_count, data->fval);
+      glUniform4fv (location, info.array_count, dataptr);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_1I:
     case GSK_GL_UNIFORM_FORMAT_TEXTURE:
-      glUniform1i (location, data->ival[0]);
+      glUniform1iv (location, 1, dataptr);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_2I:
-      glUniform2iv (location, 1, &data->ival[0]);
+      glUniform2iv (location, 1, dataptr);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_3I:
-      glUniform3iv (location, 1, &data->ival[0]);
+      glUniform3iv (location, 1, dataptr);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_4I:
-      glUniform4iv (location, 1, &data->ival[0]);
+      glUniform4iv (location, 1, dataptr);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_1UI:
-      glUniform1ui (location, data->uval[0]);
+      glUniform1uiv (location, 1, dataptr);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_MATRIX: {
       float mat[16];
-      graphene_matrix_to_float (&data->matrix[0], mat);
+      graphene_matrix_to_float (dataptr, mat);
       glUniformMatrix4fv (location, 1, GL_FALSE, mat);
     }
     break;
 
     case GSK_GL_UNIFORM_FORMAT_COLOR:
-      glUniform4fv (location, 1, &data->fval[0]);
+      glUniform4fv (location, 1, dataptr);
     break;
 
     case GSK_GL_UNIFORM_FORMAT_ROUNDED_RECT:
       if (info.send_corners)
-        glUniform4fv (location, 3, (const float *)&data->rounded_rect[0]);
+        glUniform4fv (location, 3, dataptr);
       else
-        glUniform4fv (location, 1, (const float *)&data->rounded_rect[0]);
+        glUniform4fv (location, 1, dataptr);
     break;
 
     default:
